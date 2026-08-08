@@ -14,11 +14,14 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
+    "prettier": "^3.9.6",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "mongodb": "^3.2.6",
+    "mongoose": "^6.2.9"
   }
 }
