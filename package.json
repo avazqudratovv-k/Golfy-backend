@@ -12,6 +12,12 @@
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "scriptsAdmin": {
+  "start": "ts-node src/server.ts",
+  "start:admin": "ts-node src/serverAdmin.ts",
+  "start:dev": "nodemon src/server.ts",
+  "start:admin:dev": "nodemon src/serverAdmin.ts"
+},
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
     "@types/jsonwebtoken": "^9.0.10",
