@@ -2,7 +2,6 @@ import cors from "cors";
 import express from "express";
 import path from "path";
 import router from "./router";
-import routerAdmin from "./routerAdmin";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { MORGAN_FORMAT } from "./libs/utils/config";
@@ -27,7 +26,6 @@ app.use(morgan(MORGAN_FORMAT));
 /** 3-VIEWS **/
 
 /** 4-ROUTERS **/
-app.use("/admin", routerAdmin); // React, JWT cookie auth
-app.use("/", router);           // React, JWT cookie auth
+app.use("/", router);
 
 export default app;

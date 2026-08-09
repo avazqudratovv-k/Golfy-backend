@@ -2,6 +2,7 @@ import express from "express";
 import userController from "./controllers/user.controller";
 import venueController from "./controllers/venue.controller";
 import bookingController from "./controllers/booking.controller";
+import { uploadVenueImages } from "./libs/utils/multer";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.post("/users/status", userController.verifyAdmin, userController.updateUs
 
 /** VENUES **/
 router.get("/venues", userController.verifyAdmin, venueController.getAllVenues);
-router.post("/venues/create", userController.verifyAdmin, venueController.createNewVenue);
+router.post("/venues/create", userController.verifyAdmin, uploadVenueImages.array("venueImages", 5), venueController.createNewVenue);
 router.post("/venues/update/:id", userController.verifyAdmin, venueController.updateChosenVenue);
 
 /** BOOKINGS **/
