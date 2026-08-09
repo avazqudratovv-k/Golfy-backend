@@ -11,6 +11,7 @@ import {
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
 import { AUTH_TIMER } from "../libs/utils/config";
 import AuthService from "../models/Auth.service";
+import { UserRole } from "../libs/enums/user.enum";
 
 const userService = new UserService();
 const authService = new AuthService();
@@ -98,6 +99,61 @@ userController.updateMyProfile = async (req: ExtendedRequest, res: Response) => 
 
 /** ADMIN **/
 
+userController.adminSignup = async (req: Request, res: Response) => {
+  try {
+    console.log("adminSignup");
+    const input: UserInput = { ...req.body, role: UserRole.ADMIN };
+    const result: User = await userService.signup(input);
+    const token = await authService.createToken(result);
+    res.cookie("adminAccessToken", token, {
+      maxAge: AUTH_TIMER * 3600 * 1000,
+      httpOnly: false,
+    });
+
+    res.status(HttpCode.CREATED).json({ user: result, accessToken: token });
+  } catch (err) {
+    console.log("Error, adminSignup:", err);
+    if (err instanceof Errors) res.status(err.code).json(err);
+    else res.status(Errors.standard.code).json(Errors.standard);
+  }
+};
+
+userController.adminLogin = async (req: Request, res: Response) => {
+  try {
+    console.log("adminLogin");
+    const input: LoginInput = req.body;
+    const result = await userService.login(input);
+
+    if (result.role !== UserRole.ADMIN) {
+  throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ADMIN);
+}
+
+    const token = await authService.createToken(result);
+    res.cookie("adminAccessToken", token, {
+      maxAge: AUTH_TIMER * 3600 * 1000,
+      httpOnly: false,
+    });
+
+    res.status(HttpCode.OK).json({ user: result, accessToken: token });
+  } catch (err) {
+    console.log("Error, adminLogin:", err);
+    if (err instanceof Errors) res.status(err.code).json(err);
+    else res.status(Errors.standard.code).json(Errors.standard);
+  }
+};
+
+userController.adminLogout = (req: ExtendedRequest, res: Response) => {
+  try {
+    console.log("adminLogout");
+    res.cookie("adminAccessToken", null, { maxAge: 0, httpOnly: false });
+    res.status(HttpCode.OK).json({ logout: true });
+  } catch (err) {
+    console.log("Error, adminLogout:", err);
+    if (err instanceof Errors) res.status(err.code).json(err);
+    else res.status(Errors.standard.code).json(Errors.standard);
+  }
+};
+
 userController.getAllUsers = async (req: Request, res: Response) => {
   try {
     console.log("getAllUsers");
@@ -127,6 +183,22 @@ userController.updateUserStatus = async (req: Request, res: Response) => {
 
 /** MIDDLEWARE **/
 
+userController.verifyAdmin = async (req: ExtendedRequest,
+  res: Response,
+  next: NextFunction) => {
+  try {
+    const token = req.cookies["adminAccessToken"];
+    if (token) req.user = await authService.checkAuth(token);
+    if (!req.user) throw new Errors(HttpCode.UNAUTHORIZED, Message.NOT_AUTHENTIFICATED);
+    if (req.user.role !== UserRole.ADMIN) throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ADMIN);
+    next();
+  } catch (err) {
+    console.log("Error, verifyAdmin:", err);
+    if (err instanceof Errors) res.status(err.code).json(err);
+    else res.status(Errors.standard.code).json(Errors.standard);
+  }
+};
+
 userController.verifyAuth = async (
   req: ExtendedRequest,
   res: Response,
@@ -137,6 +209,7 @@ userController.verifyAuth = async (
     if (token) req.user = await authService.checkAuth(token);
     if (!req.user)
       throw new Errors(HttpCode.UNAUTHORIZED, Message.NOT_AUTHENTIFICATED);
+    
 
     next();
   } catch (err) {

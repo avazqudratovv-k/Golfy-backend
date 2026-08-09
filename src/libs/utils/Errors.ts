@@ -15,6 +15,7 @@ export enum Message {
     NO_DATA_FOUND = "No data is found",
     CREATE_FAILED = "Create is failed",
     UPDATE_FAILED = "Update is failed",
+    NOT_ADMIN = "You do not have admin access!",
 
     USED_EMAIL_PHONE = "You are inserting already used email or phone!",
     TOKEN_CREATION_FAILED = "Token creation error!",
