@@ -1,0 +1,17 @@
+<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background badge -->
+  <rect x="0" y="0" width="240" height="240" rx="32" fill="#E8F5E9"/>
+
+  <!-- Golf flag pin -->
+  <g stroke="#2E7D32" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- pole -->
+    <line x1="95" y1="60" x2="95" y2="185"/>
+    <!-- flag -->
+    <path d="M95 65 L150 82 L95 100 Z" fill="#2E7D32" stroke="#2E7D32"/>
+    <!-- base mound -->
+    <ellipse cx="95" cy="188" rx="35" ry="9" fill="none" stroke="#2E7D32" stroke-width="8"/>
+  </g>
+
+  <!-- golf ball -->
+  <circle cx="155" cy="165" r="10" fill="#2E7D32"/>
+</svg>

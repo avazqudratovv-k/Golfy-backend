@@ -41,4 +41,6 @@ const venueSchema = new Schema(
   { timestamps: true }
 );
 
+venueSchema.index({ venueName: 1 }, { unique: true });
+
 export default mongoose.model("Venue", venueSchema);

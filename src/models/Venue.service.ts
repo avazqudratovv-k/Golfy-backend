@@ -79,11 +79,14 @@ class VenueService {
   public async createNewVenue(input: VenueInput): Promise<Venue> {
     try {
       return await this.venueModel.create(input);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error, model:createNewVenue:", err);
+      if (err.code === 11000) {
+        throw new Errors(HttpCode.BAD_REQUEST, Message.CREATE_FAILED); // duplicate name
+      }
       throw new Errors(HttpCode.BAD_REQUEST, Message.CREATE_FAILED);
     }
-  }
+}
 
   public async updateChosenVenue(
     id: string,
