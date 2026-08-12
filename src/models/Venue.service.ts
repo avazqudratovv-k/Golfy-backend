@@ -8,6 +8,8 @@ import {
   VenueUpdateInput,
 } from "../libs/types/venue";
 import VenueModel from "../schema/Venue.model";
+import BookingModel from "../schema/Booking.model";
+import UserModel from "../schema/User.model";
 import { T } from "../libs/types/common";
 
 class VenueService {
@@ -26,7 +28,7 @@ class VenueService {
       match.venueName = { $regex: new RegExp(inquiry.search, "i") };
     }
 
-    let sort: T = { pricePerHour: 1 }; // default: cheapest first
+    let sort: T = { pricePerHour: 1 };
     if (inquiry.sort === "expensive") sort = { pricePerHour: -1 };
     else if (inquiry.sort === "popular") sort = { bookingCount: -1 };
 
@@ -67,6 +69,19 @@ class VenueService {
     return result;
   }
 
+  public async getStats(): Promise<{
+    totalBookings: number;
+    totalVenues: number;
+    totalUsers: number;
+  }> {
+    const [totalBookings, totalVenues, totalUsers] = await Promise.all([
+      BookingModel.countDocuments(),
+      this.venueModel.countDocuments({ venueStatus: VenueStatus.ACTIVE }),
+      UserModel.countDocuments(),
+    ]);
+    return { totalBookings, totalVenues, totalUsers };
+  }
+
   /** ADMIN **/
 
   public async getAllVenues(): Promise<Venue[]> {
@@ -82,11 +97,11 @@ class VenueService {
     } catch (err: any) {
       console.error("Error, model:createNewVenue:", err);
       if (err.code === 11000) {
-        throw new Errors(HttpCode.BAD_REQUEST, Message.CREATE_FAILED); // duplicate name
+        throw new Errors(HttpCode.BAD_REQUEST, Message.CREATE_FAILED);
       }
       throw new Errors(HttpCode.BAD_REQUEST, Message.CREATE_FAILED);
     }
-}
+  }
 
   public async updateChosenVenue(
     id: string,
@@ -105,7 +120,7 @@ class VenueService {
     await this.venueModel
       .findByIdAndUpdate(venueId, { $inc: { bookingCount: 1 } })
       .exec();
-}
+  }
 }
 
 export default VenueService;

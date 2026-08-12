@@ -60,6 +60,19 @@ venueController.getTopVenues = async (req: Request, res: Response) => {
     }
 };
 
+venueController.getStats = async (req: Request, res: Response) => {
+    try {
+        console.log("getStats");
+        const result = await venueService.getStats();
+
+        res.status(HttpCode.OK).json(result);
+    } catch (err) {
+        console.log("Error, getStats", err);
+        if (err instanceof Errors) res.status(err.code).json(err);
+        else res.status(Errors.standard.code).json(Errors.standard);
+    }
+};
+
 /** ADMIN **/
 
 venueController.getAllVenues = async (req: Request, res: Response) => {

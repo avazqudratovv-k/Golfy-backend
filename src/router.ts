@@ -8,6 +8,7 @@ import messageController from "./controllers/message.controller";
 
 const router = express.Router();
 
+router.get("/stats", venueController.getStats);
 /** AUTH **/
 router.post("/user/signup", userController.signup);
 router.post("/user/login", userController.login);
@@ -20,7 +21,9 @@ router.post("/user/profile", userController.verifyAuth, userController.updateMyP
 /** VENUES **/
 router.get("/venue/all", venueController.getVenues);
 router.get("/venue/top", venueController.getTopVenues);
+router.get("/stats", venueController.getStats);
 router.get("/venue/:id", venueController.getVenue);
+
 
 /** BOOKINGS **/
 router.post("/booking/create", userController.verifyAuth, bookingController.createBooking);
