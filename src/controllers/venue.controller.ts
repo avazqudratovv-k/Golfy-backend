@@ -96,8 +96,8 @@ venueController.createNewVenue = async (req: ExtendedRequest, res: Response) => 
 
         const data: VenueInput = req.body;
         data.venueImages = (req.files as Express.Multer.File[]).map((ele) => {
-            return ele.path.replace(/\\/g, "/");
-        });
+    return `uploads/venues/${ele.filename}`;
+    });
 
         const result = await venueService.createNewVenue(data);
 

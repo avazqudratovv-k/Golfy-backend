@@ -33,14 +33,14 @@ export enum Message {
 
 class Errors extends Error {
     public code: HttpCode;
-    public message: Message;
+    public message: Message | string;
 
     static standard = {
         code: HttpCode.INTERNAL_SERVER_ERROR,
         message: Message.SOMETHING_WENT_WRONG,
     }
 
-    constructor(statusCode: HttpCode, statusMessage: Message) {
+    constructor(statusCode: HttpCode, statusMessage: Message | string) {
         super();
         this.code = statusCode;
         this.message = statusMessage;

@@ -6,6 +6,7 @@ import reviewController from "./controllers/review.controller";
 import messageController from "./controllers/message.controller";
 
 
+
 const router = express.Router();
 
 router.get("/stats", venueController.getStats);
@@ -29,6 +30,7 @@ router.get("/venue/:id", venueController.getVenue);
 router.post("/booking/create", userController.verifyAuth, bookingController.createBooking);
 router.get("/booking/my", userController.verifyAuth, bookingController.getMyBookings);
 router.post("/booking/update", userController.verifyAuth, bookingController.updateBooking);
+
 
 /** REVIEWS **/
 router.post("/review/create", userController.verifyAuth, reviewController.createReview);

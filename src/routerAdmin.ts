@@ -19,7 +19,9 @@ router.get("/venues", userController.verifyAdmin, venueController.getAllVenues);
 router.post("/venues/create", userController.verifyAdmin, uploadVenueImages.array("venueImages", 5), venueController.createNewVenue);
 router.post("/venues/update/:id", userController.verifyAdmin, venueController.updateChosenVenue);
 
+
 /** BOOKINGS **/
 router.get("/bookings", userController.verifyAdmin, bookingController.getAllBookings);
+router.delete("/bookings/:id", userController.verifyAdmin, bookingController.deleteBooking);
 
 export default router;

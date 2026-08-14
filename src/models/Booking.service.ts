@@ -25,15 +25,22 @@ class BookingService {
 
         // conflict check \
         const existing = await this.bookingModel
-          .findOne({
-            venueId: venueId,
-            bookingDate: input.bookingDate,
-            startTime: input.startTime,
-            status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-          })
-          .exec();
-        if (existing) throw new Errors(HttpCode.CONFLICT, Message.SLOT_ALREADY_BOOKED);
+  .findOne({
+    venueId: venueId,
+    bookingDate: input.bookingDate,
+    status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+    $or: [
+      { startTime: { $lt: input.endTime }, endTime: { $gt: input.startTime } },
+    ],
+  })
+  .exec();
 
+if (existing) {
+  throw new Errors(
+    HttpCode.CONFLICT,
+    `This slot conflicts with an existing booking from ${existing.startTime} to ${existing.endTime}. Please choose a different time.`
+  );
+}
         try {
             return await this.bookingModel.create({
                 ...input,
@@ -127,6 +134,13 @@ class BookingService {
 
         return result;
     }
+
+    public async deleteBooking(bookingId: string): Promise<any> {
+    const id = shapeIntoMongooseObjectId(bookingId);
+    const result = await this.bookingModel.findByIdAndDelete(id).exec();
+    if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.BOOKING_NOT_FOUND);
+    return result;
+}
 }
 
 export default BookingService;
