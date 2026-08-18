@@ -1,27 +1,26 @@
 import express from "express";
-import userController from "./controllers/user.controller";
+import adminController from "./controllers/admin.controller";
 import venueController from "./controllers/venue.controller";
 import bookingController from "./controllers/booking.controller";
 import { uploadVenueImages } from "./libs/utils/multer";
 
 const router = express.Router();
 
-router.post("/signup", userController.adminSignup);
-router.post("/login", userController.adminLogin);
-router.post("/logout", userController.verifyAdmin, userController.adminLogout);
+router.post("/signup", adminController.adminSignup);
+router.post("/login", adminController.adminLogin);
+router.post("/logout", adminController.verifyAdmin, adminController.adminLogout);
 
 /** USERS **/
-router.get("/users", userController.verifyAdmin, userController.getAllUsers);
-router.post("/users/status", userController.verifyAdmin, userController.updateUserStatus);
+router.get("/users", adminController.verifyAdmin, adminController.getAllUsers);
+router.post("/users/status", adminController.verifyAdmin, adminController.updateUserStatus);
 
 /** VENUES **/
-router.get("/venues", userController.verifyAdmin, venueController.getAllVenues);
-router.post("/venues/create", userController.verifyAdmin, uploadVenueImages.array("venueImages", 5), venueController.createNewVenue);
-router.post("/venues/update/:id", userController.verifyAdmin, venueController.updateChosenVenue);
-
+router.get("/venues", adminController.verifyAdmin, venueController.getAllVenues);
+router.post("/venues/create", adminController.verifyAdmin, uploadVenueImages.array("venueImages", 5), venueController.createNewVenue);
+router.post("/venues/update/:id", adminController.verifyAdmin, venueController.updateChosenVenue);
 
 /** BOOKINGS **/
-router.get("/bookings", userController.verifyAdmin, bookingController.getAllBookings);
-router.delete("/bookings/:id", userController.verifyAdmin, bookingController.deleteBooking);
+router.get("/bookings", adminController.verifyAdmin, bookingController.getAllBookings);
+router.delete("/bookings/:id", adminController.verifyAdmin, bookingController.deleteBooking);
 
 export default router;

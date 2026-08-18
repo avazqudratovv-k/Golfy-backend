@@ -32,14 +32,20 @@ class VenueService {
     if (inquiry.sort === "expensive") sort = { pricePerHour: -1 };
     else if (inquiry.sort === "popular") sort = { bookingCount: -1 };
 
+    // EXPLICIT NUMERIC CASTING: Prevents pipeline type breaks
+    const cleanPage = Math.max(1, Number(inquiry.page));
+    const cleanLimit = Math.max(1, Number(inquiry.limit));
+    const skipCount = (cleanPage - 1) * cleanLimit;
+
     const result = await this.venueModel
       .aggregate([
         { $match: match },
         { $sort: sort },
-        { $skip: (inquiry.page * 1 - 1) * inquiry.limit },
-        { $limit: inquiry.limit * 1 },
+        { $skip: skipCount },
+        { $limit: cleanLimit },
       ])
       .exec();
+
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
     return result;
   }
@@ -63,10 +69,11 @@ class VenueService {
       .find({ venueStatus: VenueStatus.ACTIVE })
       .sort({ bookingCount: -1 })
       .limit(4)
+      .lean()
       .exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
 
-    return result;
+    return result as Venue[];
   }
 
   public async getStats(): Promise<{
@@ -85,10 +92,10 @@ class VenueService {
   /** ADMIN **/
 
   public async getAllVenues(): Promise<Venue[]> {
-    const result = await this.venueModel.find().exec();
+    const result = await this.venueModel.find().lean().exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
 
-    return result;
+    return result as Venue[];
   }
 
   public async createNewVenue(input: VenueInput): Promise<Venue> {

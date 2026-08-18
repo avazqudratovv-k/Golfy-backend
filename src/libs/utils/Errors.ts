@@ -20,7 +20,7 @@ export enum Message {
     USED_EMAIL_PHONE = "You are inserting already used email or phone!",
     TOKEN_CREATION_FAILED = "Token creation error!",
     NO_USER_EMAIL = "No user with that email!",
-    BLOCKED_USER = "You have been blocked, contact support!",
+    BLOCKED_USER = "You have been blocked, contact support@golfy.com",
     WRONG_PASSWORD = "Wrong password, please try again!",
     NOT_AUTHENTIFICATED = "You are not authenticated, please login first!",
 
@@ -29,6 +29,7 @@ export enum Message {
     BOOKING_NOT_FOUND = "Booking not found!",
     NOT_ELIGIBLE_FOR_REVIEW = "You can only review venues you have booked and played!",
     ALREADY_REVIEWED = "You have already reviewed this booking!",
+    
 }
 
 class Errors extends Error {

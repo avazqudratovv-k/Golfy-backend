@@ -23,12 +23,12 @@ class ReviewService {
         const userId = shapeIntoMongooseObjectId(user._id);
         const bookingId = shapeIntoMongooseObjectId(input.bookingId);
 
-        // must own this booking, and it must be finished
+        // MODIFIED: Changed from BookingStatus.FINISHED to BookingStatus.CONFIRMED
         const booking = await this.bookingModel
           .findOne({
             _id: bookingId,
             userId: userId,
-            status: BookingStatus.FINISHED,
+            status: BookingStatus.CONFIRMED, 
           })
           .exec();
         if (!booking) throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ELIGIBLE_FOR_REVIEW);
