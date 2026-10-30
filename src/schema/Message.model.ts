@@ -16,6 +16,12 @@ const messageSchema = new Schema(
       type: String,
       required: true,
     },
+
+    // set by an admin from the messages inbox
+    isRead: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true, collection: "messages" }
 );
