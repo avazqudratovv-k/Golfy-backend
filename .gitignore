@@ -1,4 +1,8 @@
 node_modules
-dist 
+dist
 
 .env
+.DS_Store
+
+# uploaded images live on disk, not in git
+uploads/
