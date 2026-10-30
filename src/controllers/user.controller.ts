@@ -11,6 +11,7 @@ import {
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
 import { AUTH_TIMER } from "../libs/utils/config";
 import AuthService from "../models/Auth.service";
+import { UserStatus } from "../libs/enums/user.enum";
 
 const userService = new UserService();
 const authService = new AuthService();
@@ -85,7 +86,7 @@ userController.updateMyProfile = async (req: ExtendedRequest, res: Response) => 
   try {
     console.log("updateMyProfile");
     const input: UserUpdateInput = req.body;
-    if (req.file) input.avatarUrl = req.file.path.replace(/\\/, "/");
+    if (req.file) input.avatarUrl = `uploads/avatars/${req.file.filename}`;
     const result = await userService.updateMyProfile(req.user, input);
 
     res.status(HttpCode.OK).json(result);
@@ -110,8 +111,10 @@ userController.verifyAuth = async (
       throw new Errors(HttpCode.UNAUTHORIZED, Message.NOT_AUTHENTIFICATED);
 
     // re-check live status — a token can be valid but the account blocked since login
-    const freshUser = await userService.getMyProfile(req.user);
-    if (freshUser.status === "BLOCK") {
+    const freshUser = await userService.getAuthState(req.user);
+    if (!freshUser || freshUser.status === UserStatus.DELETE)
+      throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
+    if (freshUser.status === UserStatus.BLOCK) {
       res.cookie("accessToken", null, { maxAge: 0, httpOnly: false });
       throw new Errors(HttpCode.FORBIDDEN, Message.BLOCKED_USER);
     }

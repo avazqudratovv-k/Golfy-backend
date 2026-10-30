@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { VenueStatus } from '../libs/enums/venue.enum';
+import { VenueStatus, VenueType } from '../libs/enums/venue.enum';
 
 const venueSchema = new Schema(
   {
@@ -7,6 +7,12 @@ const venueSchema = new Schema(
         type: String,
         enum: VenueStatus,
         default: VenueStatus.ACTIVE,
+    },
+
+    venueType: {
+        type: String,
+        enum: VenueType,
+        default: VenueType.COURSE,
     },
 
     venueName: {
@@ -22,6 +28,7 @@ const venueSchema = new Schema(
     pricePerHour: {
         type: Number,
         required: true,
+        min: 0,
     },
 
     venueDesc: {
@@ -30,10 +37,23 @@ const venueSchema = new Schema(
 
     venueImages: {
         type: [String],
-        required: [],
+        default: [],
     },
 
     bookingCount: {
+        type: Number,
+        default: 0,
+    },
+
+    // kept in sync when reviews are created
+    avgRating: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5,
+    },
+
+    reviewCount: {
         type: Number,
         default: 0,
     },
@@ -42,5 +62,6 @@ const venueSchema = new Schema(
 );
 
 venueSchema.index({ venueName: 1 }, { unique: true });
+venueSchema.index({ venueStatus: 1, bookingCount: -1 });
 
 export default mongoose.model("Venue", venueSchema);

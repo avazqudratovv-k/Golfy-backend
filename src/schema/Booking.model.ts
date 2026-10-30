@@ -43,4 +43,7 @@ const bookingSchema = new Schema({
   { timestamps: true, collection: "bookings" }
 );
 
+bookingSchema.index({ venueId: 1, bookingDate: 1, status: 1 });
+bookingSchema.index({ userId: 1, updatedAt: -1 });
+
 export default mongoose.model("Booking", bookingSchema);

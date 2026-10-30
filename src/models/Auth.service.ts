@@ -26,9 +26,12 @@ class AuthService {
     }
 
     public async checkAuth(token: string): Promise<User> {
-        const result: User = (await jwt.verify(token, this.secretToken)) as User;
-        console.log(`--- [AUTH] email: ${result.email} ---`);
-        return result;
+        try {
+            return jwt.verify(token, this.secretToken) as User;
+        } catch (err) {
+            // expired / malformed / tampered token
+            throw new Errors(HttpCode.UNAUTHORIZED, Message.NOT_AUTHENTIFICATED);
+        }
     }
 }
 

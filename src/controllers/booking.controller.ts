@@ -5,6 +5,7 @@ import Errors, { HttpCode } from "../libs/utils/Errors";
 import BookingService from "../models/Booking.service";
 import { BookingInquiry, BookingUpdateInput } from "../libs/types/booking";
 import { BookingStatus } from "../libs/enums/booking.enum";
+import { parsePagination } from "../libs/utils/config";
 
 const bookingService = new BookingService();
 const bookingController: T = {};
@@ -26,8 +27,7 @@ bookingController.getMyBookings = async (req: ExtendedRequest, res: Response) =>
         console.log("getMyBookings");
         const { page, limit, status } = req.query;
         const inquiry: BookingInquiry = {
-            page: Number(page) || 1,
-            limit: Number(limit) || 10,
+            ...parsePagination(page, limit, 10),
             status: status as BookingStatus,
         };
         console.log("inquiry:", inquiry);
@@ -35,6 +35,18 @@ bookingController.getMyBookings = async (req: ExtendedRequest, res: Response) =>
         res.status(HttpCode.OK).json(result);
     } catch (err) {
         console.log("Error, getMyBookings:", err);
+        if (err instanceof Errors) res.status(err.code).json(err);
+        else res.status(Errors.standard.code).json(Errors.standard);
+    }
+};
+
+bookingController.getMyBooking = async (req: ExtendedRequest, res: Response) => {
+    try {
+        console.log("getMyBooking");
+        const result = await bookingService.getMyBooking(req.user, req.params.id as string);
+        res.status(HttpCode.OK).json(result);
+    } catch (err) {
+        console.log("Error, getMyBooking:", err);
         if (err instanceof Errors) res.status(err.code).json(err);
         else res.status(Errors.standard.code).json(Errors.standard);
     }
@@ -48,6 +60,22 @@ bookingController.updateBooking = async (req: ExtendedRequest, res: Response) =>
         res.status(HttpCode.OK).json(result);
     } catch (err) {
         console.log("Error, updateBooking:", err);
+        if (err instanceof Errors) res.status(err.code).json(err);
+        else res.status(Errors.standard.code).json(Errors.standard);
+    }
+};
+
+// public: free / taken hourly slots of a venue for ?date=YYYY-MM-DD
+bookingController.getAvailability = async (req: ExtendedRequest, res: Response) => {
+    try {
+        console.log("getAvailability");
+        const result = await bookingService.getAvailability(
+            req.params.id as string,
+            req.query.date
+        );
+        res.status(HttpCode.OK).json(result);
+    } catch (err) {
+        console.log("Error, getAvailability:", err);
         if (err instanceof Errors) res.status(err.code).json(err);
         else res.status(Errors.standard.code).json(Errors.standard);
     }

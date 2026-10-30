@@ -5,10 +5,12 @@ import { ExtendedRequest, LoginInput, User, UserInput, UserUpdateInput } from ".
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
 import { AUTH_TIMER } from "../libs/utils/config";
 import AuthService from "../models/Auth.service";
-import { UserRole } from "../libs/enums/user.enum";
+import DashboardService from "../models/Dashboard.service";
+import { UserRole, UserStatus } from "../libs/enums/user.enum";
 
 const userService = new UserService();
 const authService = new AuthService();
+const dashboardService = new DashboardService();
 
 const adminController: T = {};
 
@@ -17,8 +19,14 @@ const adminController: T = {};
 adminController.adminSignup = async (req: Request, res: Response) => {
   try {
     console.log("adminSignup");
-    const input: UserInput = { ...req.body, role: UserRole.ADMIN };
-    const result: User = await userService.signup(input);
+    // optional lock: when ADMIN_SIGNUP_SECRET is set, signup must present it
+    const secret = process.env.ADMIN_SIGNUP_SECRET;
+    const { adminSecret, role, status, ...rest } = req.body ?? {};
+    if (secret && (req.header("x-admin-secret") ?? adminSecret) !== secret)
+      throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ADMIN);
+
+    const input: UserInput = rest;
+    const result: User = await userService.signup(input, UserRole.ADMIN);
     const token = await authService.createToken(result);
     res.cookie("adminAccessToken", token, {
       maxAge: AUTH_TIMER * 3600 * 1000,
@@ -98,6 +106,21 @@ adminController.updateUserStatus = async (req: Request, res: Response) => {
   }
 };
 
+/** DASHBOARD **/
+
+adminController.getDashboard = async (req: Request, res: Response) => {
+  try {
+    console.log("getDashboard");
+    const result = await dashboardService.getDashboard();
+
+    res.status(HttpCode.OK).json(result);
+  } catch (err) {
+    console.log("Error, getDashboard:", err);
+    if (err instanceof Errors) res.status(err.code).json(err);
+    else res.status(Errors.standard.code).json(Errors.standard);
+  }
+};
+
 /** MIDDLEWARE **/
 
 adminController.verifyAdmin = async (
@@ -110,6 +133,11 @@ adminController.verifyAdmin = async (
     if (token) req.user = await authService.checkAuth(token);
     if (!req.user) throw new Errors(HttpCode.UNAUTHORIZED, Message.NOT_AUTHENTIFICATED);
     if (req.user.role !== UserRole.ADMIN) throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ADMIN);
+
+    // a valid token is not enough: the account must still be an active admin
+    const fresh = await userService.getAuthState(req.user);
+    if (!fresh || fresh.role !== UserRole.ADMIN || fresh.status !== UserStatus.ACTIVE)
+      throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ADMIN);
     next();
   } catch (err) {
     console.log("Error, verifyAdmin:", err);

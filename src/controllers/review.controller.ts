@@ -4,6 +4,7 @@ import { ExtendedRequest } from "../libs/types/user";
 import Errors, { HttpCode } from "../libs/utils/Errors";
 import ReviewService from "../models/Review.service";
 import { ReviewInput, ReviewInquiry } from "../libs/types/review";
+import { parsePagination } from "../libs/utils/config";
 
 const reviewService = new ReviewService();
 
@@ -27,10 +28,7 @@ reviewController.getRecentReviews = async (req: Request, res: Response) => {
     try {
         console.log("getRecentReviews");
         const { page, limit, venueId } = req.query;
-        const inquiry: ReviewInquiry = {
-            page: Number(page) || 1,
-            limit: Number(limit) || 3,
-        };
+        const inquiry: ReviewInquiry = parsePagination(page, limit, 3);
         if (venueId) inquiry.venueId = venueId as any;
 
         const result = await reviewService.getRecentReviews(inquiry);

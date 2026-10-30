@@ -6,6 +6,8 @@ import { shapeIntoMongooseObjectId } from "../libs/utils/config";
 import { HttpCode, Message } from "../libs/utils/Errors";
 import Errors from"../libs/utils/Errors";
 import { BookingStatus } from "../libs/enums/booking.enum";
+import { bookingHasEnded } from "../libs/utils/booking";
+import VenueModel from "../schema/Venue.model";
 
 class ReviewService {
     private readonly reviewModel;
@@ -23,28 +25,61 @@ class ReviewService {
         const userId = shapeIntoMongooseObjectId(user._id);
         const bookingId = shapeIntoMongooseObjectId(input.bookingId);
 
-        // MODIFIED: Changed from BookingStatus.FINISHED to BookingStatus.CONFIRMED
+        const rating = Number(input?.rating);
+        const comment = typeof input?.comment === "string" ? input.comment.trim() : "";
+        if (!Number.isFinite(rating) || rating < 1 || rating > 5 || !comment)
+            throw new Errors(HttpCode.BAD_REQUEST, Message.INVALID_INPUT);
+
+        // only your own booking that is finished, or confirmed and already played
         const booking = await this.bookingModel
           .findOne({
             _id: bookingId,
             userId: userId,
-            status: BookingStatus.CONFIRMED, 
+            status: { $in: [BookingStatus.CONFIRMED, BookingStatus.FINISHED] },
           })
           .exec();
-        if (!booking) throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ELIGIBLE_FOR_REVIEW);
+        if (
+            !booking ||
+            (booking.status === BookingStatus.CONFIRMED && !bookingHasEnded(booking))
+        )
+            throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ELIGIBLE_FOR_REVIEW);
 
         try {
-            return await this.reviewModel.create({
-                ...input,
+            const review = await this.reviewModel.create({
                 bookingId: bookingId,
                 userId: userId,
                 venueId: booking.venueId,
+                rating: rating,
+                comment: comment,
             });
-        } catch (err) {
+            this.recomputeVenueRating(booking.venueId).catch((e) =>
+                console.log("Error, model:recomputeVenueRating:", e)
+            );
+            return review;
+        } catch (err: any) {
             console.log("Error, model:createReview:", err);
             // duplicate key error from the unique bookingId index
-            throw new Errors(HttpCode.BAD_REQUEST, Message.ALREADY_REVIEWED);
+            if (err?.code === 11000)
+                throw new Errors(HttpCode.BAD_REQUEST, Message.ALREADY_REVIEWED);
+            throw new Errors(HttpCode.BAD_REQUEST, Message.CREATE_FAILED);
         }
+    }
+
+    // keeps avgRating / reviewCount on the venue in sync with its reviews
+    public async recomputeVenueRating(venueId: any): Promise<void> {
+        const [stats] = await this.reviewModel
+          .aggregate([
+            { $match: { venueId: shapeIntoMongooseObjectId(venueId) } },
+            { $group: { _id: null, avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+          ])
+          .exec();
+        await VenueModel.updateOne(
+            { _id: venueId },
+            {
+                avgRating: stats ? Math.round(stats.avg * 10) / 10 : 0,
+                reviewCount: stats ? stats.count : 0,
+            }
+        ).exec();
     }
 
     public async getRecentReviews(inquiry: ReviewInquiry): Promise<Review[]> {
@@ -55,13 +90,17 @@ class ReviewService {
           .aggregate([
             { $match: match },
             { $sort: { createdAt: -1 } },
-            { $skip: (inquiry.page - 1) * inquiry.limit },
+            { $skip: Math.max(0, (inquiry.page - 1) * inquiry.limit) },
             { $limit: inquiry.limit },
             {
+                // public endpoint: expose only name + avatar (never hash/email/phone)
                 $lookup: {
                     from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
+                    let: { uid: "$userId" },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$_id", "$$uid"] } } },
+                        { $project: { name: 1, avatarUrl: 1 } },
+                    ],
                     as: "userData",
                 },
             },

@@ -6,9 +6,13 @@ import {
   UserUpdateInput,
 } from "../libs/types/user";
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
-import { UserStatus } from "../libs/enums/user.enum";
+import { UserRole, UserStatus } from "../libs/enums/user.enum";
 import * as bcrypt from "bcryptjs";
-import { shapeIntoMongooseObjectId } from "../libs/utils/config";
+import { isNonEmptyString, shapeIntoMongooseObjectId } from "../libs/utils/config";
+
+// emails are matched case-insensitively (existing mixed-case accounts keep working)
+const CI = { locale: "en", strength: 2 };
+const MIN_PASSWORD_LENGTH = 8;
 
 class UserService {
   private readonly userModel;
@@ -17,26 +21,64 @@ class UserService {
     this.userModel = UserModel;
   }
 
-  public async signup(input: UserInput): Promise<User> {
-    const salt = await bcrypt.genSalt();
-    input.password = await bcrypt.hash(input.password, salt);
+  public async signup(
+    input: UserInput,
+    role: UserRole = UserRole.USER
+  ): Promise<User> {
+    if (
+      !isNonEmptyString(input?.name) ||
+      !isNonEmptyString(input?.email) ||
+      !isNonEmptyString(input?.phone) ||
+      !isNonEmptyString(input?.password)
+    )
+      throw new Errors(HttpCode.BAD_REQUEST, Message.INVALID_INPUT);
+    if (input.password.length < MIN_PASSWORD_LENGTH)
+      throw new Errors(HttpCode.BAD_REQUEST, Message.PASSWORD_TOO_SHORT);
+
+    // whitelist: role/status are never taken from the client
+    const data: UserInput = {
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      phone: input.phone.trim(),
+      password: await bcrypt.hash(input.password, await bcrypt.genSalt()),
+      role,
+    };
+    if (typeof input.avatarUrl === "string") data.avatarUrl = input.avatarUrl;
+
+    const emailUsed = await this.userModel
+      .findOne({ email: data.email })
+      .select("_id")
+      .collation(CI)
+      .exec();
+    if (emailUsed) throw new Errors(HttpCode.BAD_REQUEST, Message.EMAIL_USED);
+    const phoneUsed = await this.userModel
+      .findOne({ phone: data.phone })
+      .select("_id")
+      .exec();
+    if (phoneUsed) throw new Errors(HttpCode.BAD_REQUEST, Message.PHONE_USED);
 
     try {
-      const result = await this.userModel.create(input);
+      const result = await this.userModel.create(data);
       result.password = "";
       return result.toJSON();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error, model:signup", err);
-      throw new Errors(HttpCode.BAD_REQUEST, Message.USED_EMAIL_PHONE);
+      if (err?.code === 11000)
+        throw new Errors(HttpCode.BAD_REQUEST, Message.USED_EMAIL_PHONE);
+      throw new Errors(HttpCode.BAD_REQUEST, Message.CREATE_FAILED);
     }
   }
 
   public async login(input: LoginInput): Promise<User> {
+    if (!isNonEmptyString(input?.email) || !isNonEmptyString(input?.password))
+      throw new Errors(HttpCode.BAD_REQUEST, Message.INVALID_INPUT);
+
     const user = await this.userModel
       .findOne(
-        { email: input.email, status: { $ne: UserStatus.DELETE } },
+        { email: input.email.trim(), status: { $ne: UserStatus.DELETE } },
         { email: 1, password: 1, status: 1 }
       )
+      .collation(CI)
       .exec();
     if (!user) throw new Errors(HttpCode.NOT_FOUND, Message.NO_USER_EMAIL);
     else if (user.status === UserStatus.BLOCK) {
@@ -51,6 +93,18 @@ class UserService {
     return await this.userModel.findById(user._id).lean().exec();
   }
 
+  // live role/status of the account behind a token (any status)
+  public async getAuthState(
+    user: User
+  ): Promise<{ role: UserRole; status: UserStatus } | null> {
+    const userId = shapeIntoMongooseObjectId(user._id);
+    return await this.userModel
+      .findById(userId)
+      .select("role status")
+      .lean()
+      .exec();
+  }
+
   public async getMyProfile(user: User): Promise<User> {
     const userId = shapeIntoMongooseObjectId(user._id);
     const result = await this.userModel
@@ -61,15 +115,55 @@ class UserService {
     return result;
   }
 
+  // only these fields are editable; role/status/email can never be changed here
+  private async buildProfileUpdate(input: UserUpdateInput): Promise<any> {
+    const update: any = {};
+    if (isNonEmptyString(input?.name)) update.name = input.name.trim();
+    if (isNonEmptyString(input?.phone)) update.phone = input.phone.trim();
+    if (typeof input?.avatarUrl === "string") update.avatarUrl = input.avatarUrl;
+    if (isNonEmptyString(input?.password))
+      update.password = await bcrypt.hash(input.password, await bcrypt.genSalt());
+    return update;
+  }
+
   public async updateMyProfile(
     user: User,
-    input: UserUpdateInput
+    input: UserUpdateInput & { currentPassword?: string }
   ): Promise<User> {
     const userId = shapeIntoMongooseObjectId(user._id);
-    const result = await this.userModel
-      .findOneAndUpdate({ _id: userId }, input, { new: true })
-      .exec();
-    if (!result) throw new Errors(HttpCode.NOT_MODIFIED, Message.UPDATE_FAILED);
+
+    // changing the password needs the current one
+    if (isNonEmptyString(input?.password)) {
+      if (input.password.length < MIN_PASSWORD_LENGTH)
+        throw new Errors(HttpCode.BAD_REQUEST, Message.PASSWORD_TOO_SHORT);
+      const account = await this.userModel
+        .findById(userId)
+        .select("+password")
+        .exec();
+      const ok =
+        !!account &&
+        isNonEmptyString(input.currentPassword) &&
+        (await bcrypt.compare(input.currentPassword, account.password));
+      if (!ok) throw new Errors(HttpCode.UNAUTHORIZED, Message.WRONG_PASSWORD);
+    }
+
+    const update = await this.buildProfileUpdate(input);
+
+    let result;
+    try {
+      result = await this.userModel
+        .findOneAndUpdate({ _id: userId }, update, {
+          new: true,
+          runValidators: true,
+        })
+        .exec();
+    } catch (err: any) {
+      console.error("Error, model:updateMyProfile", err);
+      if (err?.code === 11000)
+        throw new Errors(HttpCode.BAD_REQUEST, Message.PHONE_USED);
+      throw new Errors(HttpCode.BAD_REQUEST, Message.UPDATE_FAILED);
+    }
+    if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.UPDATE_FAILED);
 
     return result;
   }
@@ -86,11 +180,24 @@ class UserService {
   }
 
   public async updateUserStatus(input: UserUpdateInput): Promise<User> {
-    input._id = shapeIntoMongooseObjectId(input._id);
-    const result = await this.userModel
-      .findByIdAndUpdate({ _id: input._id }, input, { new: true })
-      .exec();
-    if (!result) throw new Errors(HttpCode.NOT_MODIFIED, Message.UPDATE_FAILED);
+    const userId = shapeIntoMongooseObjectId(input?._id);
+    const update = await this.buildProfileUpdate(input);
+    if (input.status !== undefined) {
+      if (!Object.values(UserStatus).includes(input.status))
+        throw new Errors(HttpCode.BAD_REQUEST, Message.INVALID_INPUT);
+      update.status = input.status;
+    }
+
+    let result;
+    try {
+      result = await this.userModel
+        .findByIdAndUpdate(userId, update, { new: true, runValidators: true })
+        .exec();
+    } catch (err: any) {
+      console.error("Error, model:updateUserStatus", err);
+      throw new Errors(HttpCode.BAD_REQUEST, Message.UPDATE_FAILED);
+    }
+    if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.UPDATE_FAILED);
 
     return result;
   }

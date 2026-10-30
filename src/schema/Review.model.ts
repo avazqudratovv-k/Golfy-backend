@@ -38,4 +38,6 @@ const reviewSchema = new Schema(
 // one review per booking — enforces "can't review the same booking twice"
 reviewSchema.index({ bookingId: 1 }, { unique: true });
 
+reviewSchema.index({ venueId: 1, createdAt: -1 });
+
 export default mongoose.model("Review", reviewSchema);

@@ -3,7 +3,10 @@ import Errors, { HttpCode, Message } from "../libs/utils/Errors";
 import { T } from "../libs/types/common";
 import VenueService from "../models/Venue.service";
 import { VenueInput, VenueInquiry } from "../libs/types/venue";
+import { VenueType } from "../libs/enums/venue.enum";
 import { ExtendedRequest } from "../libs/types/user";
+import { parsePagination, toOptionalNumber } from "../libs/utils/config";
+import fs from "fs";
 
 const venueService = new VenueService();
 
@@ -13,16 +16,21 @@ const venueController: T = {};
 venueController.getVenues = async (req: Request, res: Response) => {
     try {
         console.log("getVenues");
-        const { page, limit, sort, search } = req.query;
+        const { page, limit, sort, search, minPrice, maxPrice, minRating, type } = req.query;
         const inquiry: VenueInquiry = {
             order: "",
-            page: Number(page) || 1,
-            limit: Number(limit) || 4,
+            ...parsePagination(page, limit, 4),
         };
-        if (sort) inquiry.sort = sort as "cheap" | "expensive" | "popular";
+        if (sort) inquiry.sort = sort as "cheap" | "expensive" | "popular" | "rating";
         if (search) inquiry.search = String(search);
+        inquiry.minPrice = toOptionalNumber(minPrice);
+        inquiry.maxPrice = toOptionalNumber(maxPrice);
+        inquiry.minRating = toOptionalNumber(minRating);
+        if (type) inquiry.type = String(type).toUpperCase() as VenueType;
 
         const result = await venueService.getVenues(inquiry);
+        // total matches (for pagination UI), readable thanks to CORS exposedHeaders
+        res.setHeader("X-Total-Count", String(await venueService.countVenues(inquiry)));
 
         res.status(HttpCode.OK).json(result);
     } catch (err) {
@@ -42,6 +50,19 @@ venueController.getVenue = async (req: ExtendedRequest, res: Response) => {
         res.status(HttpCode.OK).json(result);
     } catch (err) {
         console.log("Error, getVenue", err);
+        if (err instanceof Errors) res.status(err.code).json(err);
+        else res.status(Errors.standard.code).json(Errors.standard);
+    }
+};
+
+venueController.getSimilarVenues = async (req: Request, res: Response) => {
+    try {
+        console.log("getSimilarVenues");
+        const result = await venueService.getSimilarVenues(req.params.id as string);
+
+        res.status(HttpCode.OK).json(result);
+    } catch (err) {
+        console.log("Error, getSimilarVenues", err);
         if (err instanceof Errors) res.status(err.code).json(err);
         else res.status(Errors.standard.code).json(Errors.standard);
     }
@@ -89,6 +110,7 @@ venueController.getAllVenues = async (req: Request, res: Response) => {
 };
 
 venueController.createNewVenue = async (req: ExtendedRequest, res: Response) => {
+    const uploaded = ((req.files as Express.Multer.File[]) ?? []);
     try {
         console.log("createNewVenue");
         if (!req.files?.length)
@@ -104,21 +126,34 @@ venueController.createNewVenue = async (req: ExtendedRequest, res: Response) => 
         res.status(HttpCode.CREATED).json(result);
     } catch (err) {
         console.log("Error, createNewVenue", err);
+        // do not keep images of a venue that was not created
+        uploaded.forEach((f) => fs.unlink(f.path, () => {}));
         if (err instanceof Errors) res.status(err.code).json(err);
         else res.status(Errors.standard.code).json(Errors.standard);
     }
 };
 
-venueController.updateChosenVenue = async (req: Request, res: Response) => {
+venueController.updateChosenVenue = async (req: ExtendedRequest, res: Response) => {
+    const uploaded = ((req.files as Express.Multer.File[]) ?? []);
     try {
         console.log("updateChosenVenue");
         const id = req.params.id as string;
 
-        const result = await venueService.updateChosenVenue(id, req.body);
+        // images change only if the form sent `keepImages` and/or new files
+        let images: { keep: string[]; added: string[] } | undefined;
+        if (uploaded.length || req.body.keepImages !== undefined) {
+            const raw = req.body.keepImages;
+            const keep: string[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
+            images = { keep, added: uploaded.map((f) => `uploads/venues/${f.filename}`) };
+        }
+        delete req.body.keepImages;
+
+        const result = await venueService.updateChosenVenue(id, req.body, images);
 
         res.status(HttpCode.OK).json(result);
     } catch (err) {
         console.log("Error, updateChosenVenue", err);
+        uploaded.forEach((f) => fs.unlink(f.path, () => {}));
         if (err instanceof Errors) res.status(err.code).json(err);
         else res.status(Errors.standard.code).json(Errors.standard);
     }
