@@ -12,4 +12,7 @@ mongoose
         console.log(`Server is running on:${PORT}`)
     })
   })
-  .catch((err) => console.log("There is an ERROR on connection MONGDB"))
+  .catch((err) => {
+    console.log("There is an ERROR on connection MONGDB", err);
+    process.exit(1);
+  });

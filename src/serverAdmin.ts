@@ -14,4 +14,7 @@ mongoose
       console.log(`Admin server running on: ${ADMIN_PORT}`);
     });
   })
-  .catch((err) => console.log("MongoDB connection error:", err));
+  .catch((err) => {
+    console.log("MongoDB connection error:", err);
+    process.exit(1);
+  });
