@@ -3,7 +3,7 @@ import { T } from "../libs/types/common";
 import UserService from "../models/User.service";
 import { ExtendedRequest, LoginInput, User, UserInput, UserUpdateInput } from "../libs/types/user";
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
-import { AUTH_TIMER } from "../libs/utils/config";
+import { AUTH_TIMER, parsePagination, wantsPaging } from "../libs/utils/config";
 import AuthService from "../models/Auth.service";
 import DashboardService from "../models/Dashboard.service";
 import { UserRole, UserStatus } from "../libs/enums/user.enum";
@@ -82,7 +82,14 @@ adminController.adminLogout = (req: ExtendedRequest, res: Response) => {
 adminController.getAllUsers = async (req: Request, res: Response) => {
   try {
     console.log("getAllUsers");
-    const result = await userService.getAllUsers();
+    const { page, limit, search, role, status } = req.query;
+    const filters = { search, role, status };
+    let paging;
+    if (wantsPaging(req.query)) {
+      paging = parsePagination(page, limit, 20);
+      res.setHeader("X-Total-Count", String(await userService.countUsers(filters)));
+    }
+    const result = await userService.getAllUsers(filters, paging);
 
     res.status(HttpCode.OK).json(result);
   } catch (err) {

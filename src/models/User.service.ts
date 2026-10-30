@@ -8,7 +8,7 @@ import {
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
 import { UserRole, UserStatus } from "../libs/enums/user.enum";
 import * as bcrypt from "bcryptjs";
-import { isNonEmptyString, shapeIntoMongooseObjectId } from "../libs/utils/config";
+import { escapeRegex, isNonEmptyString, shapeIntoMongooseObjectId } from "../libs/utils/config";
 
 // emails are matched case-insensitively (existing mixed-case accounts keep working)
 const CI = { locale: "en", strength: 2 };
@@ -170,13 +170,29 @@ class UserService {
 
   /** ADMIN **/
 
-  public async getAllUsers(): Promise<User[]> {
-    const result = await this.userModel
-      .find({ status: { $ne: UserStatus.DELETE } })
-      .exec();
+  // optional filters: search (name/email/phone), role, status
+  private buildUserFilter(opts: any = {}): any {
+    const filter: any = { status: { $ne: UserStatus.DELETE } };
+    if (opts.status && Object.values(UserStatus).includes(opts.status)) filter.status = opts.status;
+    if (opts.role && Object.values(UserRole).includes(opts.role)) filter.role = opts.role;
+    if (isNonEmptyString(opts.search)) {
+      const rx = new RegExp(escapeRegex(opts.search.trim().slice(0, 100)), "i");
+      filter.$or = [{ name: rx }, { email: rx }, { phone: rx }];
+    }
+    return filter;
+  }
+
+  public async getAllUsers(opts: any = {}, paging?: { page: number; limit: number }): Promise<User[]> {
+    let query = this.userModel.find(this.buildUserFilter(opts));
+    if (paging) query = query.sort({ createdAt: -1 }).skip((paging.page - 1) * paging.limit).limit(paging.limit);
+    const result = await query.exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
 
     return result;
+  }
+
+  public async countUsers(opts: any = {}): Promise<number> {
+    return await this.userModel.countDocuments(this.buildUserFilter(opts)).exec();
   }
 
   public async updateUserStatus(input: UserUpdateInput): Promise<User> {

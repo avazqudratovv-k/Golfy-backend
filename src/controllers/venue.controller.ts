@@ -5,7 +5,7 @@ import VenueService from "../models/Venue.service";
 import { VenueInput, VenueInquiry } from "../libs/types/venue";
 import { VenueType } from "../libs/enums/venue.enum";
 import { ExtendedRequest } from "../libs/types/user";
-import { parsePagination, toOptionalNumber } from "../libs/utils/config";
+import { parsePagination, toOptionalNumber, wantsPaging } from "../libs/utils/config";
 import fs from "fs";
 
 const venueService = new VenueService();
@@ -99,11 +99,30 @@ venueController.getStats = async (req: Request, res: Response) => {
 venueController.getAllVenues = async (req: Request, res: Response) => {
     try {
         console.log("getAllVenues");
-        const result = await venueService.getAllVenues();
+        const { page, limit, search, type, status } = req.query;
+        const filters = { search, type, status };
+        let paging;
+        if (wantsPaging(req.query)) {
+            paging = parsePagination(page, limit, 20);
+            res.setHeader("X-Total-Count", String(await venueService.countAllVenues(filters)));
+        }
+        const result = await venueService.getAllVenues(filters, paging);
 
         res.status(HttpCode.OK).json(result);
     } catch (err) {
         console.log("Error, getAllVenues", err);
+        if (err instanceof Errors) res.status(err.code).json(err);
+        else res.status(Errors.standard.code).json(Errors.standard);
+    }
+};
+
+venueController.setVenueStatus = async (req: ExtendedRequest, res: Response) => {
+    try {
+        console.log("setVenueStatus");
+        const result = await venueService.setVenueStatus(req.params.id as string, req.body?.venueStatus);
+        res.status(HttpCode.OK).json(result);
+    } catch (err) {
+        console.log("Error, setVenueStatus", err);
         if (err instanceof Errors) res.status(err.code).json(err);
         else res.status(Errors.standard.code).json(Errors.standard);
     }

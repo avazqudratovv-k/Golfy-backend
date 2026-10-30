@@ -19,7 +19,7 @@ const corsOrigins = (process.env.CORS_ORIGINS ?? "")
   .filter(Boolean);
 export const corsOptions = {
   credentials: true,
-  exposedHeaders: ["X-Total-Count"],
+  exposedHeaders: ["X-Total-Count", "X-Unread-Count"],
   origin: corsOrigins.length ? corsOrigins : true,
 };
 
@@ -43,6 +43,10 @@ export const parsePagination = (page: any, limit: any, defaultLimit: number) => 
     Math.max(1, Math.floor(Number(limit)) || defaultLimit)
   ),
 });
+
+// admin lists stay a plain array; they are only paged when the client sends page and/or limit
+export const wantsPaging = (query: any): boolean =>
+  query?.page !== undefined || query?.limit !== undefined;
 
 export const escapeRegex = (text: string) =>
   text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -3,10 +3,12 @@ import { T } from "../libs/types/common";
 import { ExtendedRequest } from "../libs/types/user";
 import Errors, { HttpCode } from "../libs/utils/Errors";
 import ReviewService from "../models/Review.service";
+import VenueService from "../models/Venue.service";
 import { ReviewInput, ReviewInquiry } from "../libs/types/review";
 import { parsePagination } from "../libs/utils/config";
 
 const reviewService = new ReviewService();
+const venueService = new VenueService();
 
 const reviewController: T = {};
 
@@ -19,6 +21,19 @@ reviewController.createReview = async (req: ExtendedRequest, res: Response) => {
         res.status(HttpCode.CREATED).json(result);
     } catch (err) {
         console.log("Error, createReview:", err);
+        if (err instanceof Errors) res.status(err.code).json(err);
+        else res.status(Errors.standard.code).json(Errors.standard);
+    }
+};
+
+reviewController.getRatingBreakdown = async (req: Request, res: Response) => {
+    try {
+        console.log("getRatingBreakdown");
+        const venue: any = await venueService.getVenue(req.params.id as string);
+        const result = await reviewService.getRatingBreakdown(String(venue._id));
+        res.status(HttpCode.OK).json(result);
+    } catch (err) {
+        console.log("Error, getRatingBreakdown:", err);
         if (err instanceof Errors) res.status(err.code).json(err);
         else res.status(Errors.standard.code).json(Errors.standard);
     }

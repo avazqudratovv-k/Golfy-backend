@@ -5,7 +5,7 @@ import Errors, { HttpCode } from "../libs/utils/Errors";
 import BookingService from "../models/Booking.service";
 import { BookingInquiry, BookingUpdateInput } from "../libs/types/booking";
 import { BookingStatus } from "../libs/enums/booking.enum";
-import { parsePagination } from "../libs/utils/config";
+import { parsePagination, wantsPaging } from "../libs/utils/config";
 
 const bookingService = new BookingService();
 const bookingController: T = {};
@@ -86,6 +86,13 @@ bookingController.getAvailability = async (req: ExtendedRequest, res: Response) 
 bookingController.getAllBookings = async (req: ExtendedRequest, res: Response) => {
     try {
         console.log("getAllBookings");
+        if (wantsPaging(req.query)) {
+            const { page, limit, status, venueId, from, to, search } = req.query;
+            const filters = { status, venueId, from, to, search };
+            res.setHeader("X-Total-Count", String(await bookingService.countAllBookings(filters)));
+            const rows = await bookingService.getPagedBookings(filters, parsePagination(page, limit, 20));
+            return res.status(HttpCode.OK).json(rows);
+        }
         const result = await bookingService.getAllBookings();
         res.status(HttpCode.OK).json(result);
     } catch (err) {

@@ -82,6 +82,24 @@ class ReviewService {
         ).exec();
     }
 
+    // public: how many reviews each star rating has for a venue
+    public async getRatingBreakdown(venueId: string) {
+        const rows = await this.reviewModel
+          .aggregate([
+            { $match: { venueId: shapeIntoMongooseObjectId(venueId) } },
+            { $group: { _id: "$rating", count: { $sum: 1 } } },
+          ])
+          .exec();
+        const counts: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+        let total = 0, sum = 0;
+        for (const r of rows) {
+            counts[String(r._id)] = r.count;
+            total += r.count;
+            sum += r._id * r.count;
+        }
+        return { venueId: String(venueId), total, average: total ? Math.round((sum / total) * 10) / 10 : 0, counts };
+    }
+
     public async getRecentReviews(inquiry: ReviewInquiry): Promise<Review[]> {
         const match: any = {};
         if (inquiry.venueId) match.venueId = shapeIntoMongooseObjectId(inquiry.venueId);

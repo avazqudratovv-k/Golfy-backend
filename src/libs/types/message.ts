@@ -5,6 +5,7 @@ export interface Message {
     name: string;
     email: string;
     message: string;
+    isRead?: boolean;
     createdAt: Date;
 }
 

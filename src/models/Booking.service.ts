@@ -1,7 +1,7 @@
 import { Booking, BookingInquiry, BookingInput, BookingUpdateInput } from "../libs/types/booking";
 import { User } from "../libs/types/user";
 import BookingModel from "../schema/Booking.model";
-import { BOOKING_HOURS, PENDING_HOLD_MINUTES, shapeIntoMongooseObjectId } from "../libs/utils/config";
+import { BOOKING_HOURS, PENDING_HOLD_MINUTES, escapeRegex, shapeIntoMongooseObjectId } from "../libs/utils/config";
 import { HttpCode, Message } from "../libs/utils/Errors";
 import Errors from "../libs/utils/Errors";
 import { BookingStatus } from "../libs/enums/booking.enum";
@@ -277,6 +277,69 @@ class BookingService {
     }
 
     /** ADMIN **/
+
+    // optional filters: status, venueId, from/to (booking date), search (guest or venue name / email)
+    private adminBookingMatches(opts: any = {}): { before: any; after: any } {
+        const before: any = {};
+        if (opts.status && Object.values(BookingStatus).includes(opts.status)) before.status = opts.status;
+        if (opts.venueId) before.venueId = shapeIntoMongooseObjectId(String(opts.venueId));
+        const range: any = {};
+        const from = new Date(opts.from), to = new Date(opts.to);
+        if (opts.from && !isNaN(from.getTime())) range.$gte = from;
+        if (opts.to && !isNaN(to.getTime())) range.$lte = to;
+        if (Object.keys(range).length) before.bookingDate = range;
+
+        const after: any = {};
+        if (typeof opts.search === "string" && opts.search.trim()) {
+            const rx = new RegExp(escapeRegex(opts.search.trim().slice(0, 100)), "i");
+            after.$or = [{ "userData.name": rx }, { "userData.email": rx }, { "venueData.venueName": rx }];
+        }
+        return { before, after };
+    }
+
+    private adminBookingPipeline(opts: any = {}): any[] {
+        const { before, after } = this.adminBookingMatches(opts);
+        return [
+            ...(Object.keys(before).length ? [{ $match: before }] : []),
+            { $sort: { bookingDate: -1, _id: -1 } },
+            {
+                $lookup: {
+                    from: "venues",
+                    localField: "venueId",
+                    foreignField: "_id",
+                    as: "venueData",
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userData",
+                },
+            },
+            // $lookup ignores select:false, so strip the hash explicitly
+            { $project: { "userData.password": 0 } },
+            ...(Object.keys(after).length ? [{ $match: after }] : []),
+        ];
+    }
+
+    public async countAllBookings(opts: any = {}): Promise<number> {
+        const [row] = await this.bookingModel
+            .aggregate([...this.adminBookingPipeline(opts), { $count: "n" }])
+            .exec();
+        return row?.n ?? 0;
+    }
+
+    public async getPagedBookings(opts: any, paging: { page: number; limit: number }): Promise<Booking[]> {
+        return await this.bookingModel
+            .aggregate([
+                ...this.adminBookingPipeline(opts),
+                { $skip: (paging.page - 1) * paging.limit },
+                { $limit: paging.limit },
+            ])
+            .exec();
+    }
 
     public async getAllBookings(): Promise<Booking[]> {
         const result = await this.bookingModel

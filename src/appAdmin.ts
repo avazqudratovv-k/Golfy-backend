@@ -1,4 +1,5 @@
 import cors from "cors";
+import mongoose from "mongoose";
 import express from "express";
 import path from "path";
 import routerAdmin from "./routerAdmin";
@@ -19,6 +20,12 @@ app.use(express.json());
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(morgan(MORGAN_FORMAT));
+
+// liveness + database state, no auth
+app.get("/health", (req, res) => {
+  const db = mongoose.connection.readyState === 1;
+  res.status(db ? 200 : 503).json({ status: db ? "ok" : "degraded", db, uptime: Math.round(process.uptime()) });
+});
 
 app.use("/", routerAdmin);
 

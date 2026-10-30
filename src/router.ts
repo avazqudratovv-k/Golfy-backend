@@ -30,6 +30,7 @@ router.post("/user/profile", userController.verifyAuth, uploadAvatar.single("ava
 router.get("/venue/all", venueController.getVenues);
 router.get("/venue/top", venueController.getTopVenues);
 router.get("/venue/:id/availability", bookingController.getAvailability);
+router.get("/venue/:id/rating-breakdown", reviewController.getRatingBreakdown);
 router.get("/venue/:id/similar", venueController.getSimilarVenues);
 router.get("/venue/:id", venueController.getVenue);
 

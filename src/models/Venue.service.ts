@@ -149,11 +149,40 @@ class VenueService {
 
   /** ADMIN **/
 
-  public async getAllVenues(): Promise<Venue[]> {
-    const result = await this.venueModel.find().lean().exec();
+  // optional filters: search (name/location), type, status
+  private buildAdminVenueFilter(opts: any = {}): T {
+    const filter: T = {};
+    if (opts.status && Object.values(VenueStatus).includes(opts.status)) filter.venueStatus = opts.status;
+    if (opts.type && Object.values(VenueType).includes(opts.type)) filter.venueType = opts.type;
+    if (typeof opts.search === "string" && opts.search.trim()) {
+      const rx = new RegExp(escapeRegex(opts.search.trim().slice(0, 100)), "i");
+      filter.$or = [{ venueName: rx }, { venueLocation: rx }];
+    }
+    return filter;
+  }
+
+  public async getAllVenues(opts: any = {}, paging?: { page: number; limit: number }): Promise<Venue[]> {
+    let query = this.venueModel.find(this.buildAdminVenueFilter(opts));
+    if (paging) query = query.sort({ createdAt: -1, _id: 1 }).skip((paging.page - 1) * paging.limit).limit(paging.limit);
+    const result = await query.lean().exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
 
     return result as Venue[];
+  }
+
+  public async countAllVenues(opts: any = {}): Promise<number> {
+    return await this.venueModel.countDocuments(this.buildAdminVenueFilter(opts)).exec();
+  }
+
+  // switch a venue ACTIVE / INACTIVE without touching its images
+  public async setVenueStatus(id: string, status: any): Promise<Venue> {
+    if (status !== VenueStatus.ACTIVE && status !== VenueStatus.INACTIVE)
+      throw new Errors(HttpCode.BAD_REQUEST, Message.INVALID_INPUT);
+    const result = await this.venueModel
+      .findOneAndUpdate({ _id: shapeIntoMongooseObjectId(id), venueStatus: { $ne: VenueStatus.DELETE } }, { venueStatus: status }, { new: true })
+      .exec();
+    if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.UPDATE_FAILED);
+    return result;
   }
 
   // only these fields can be written by the client (never bookingCount etc.)

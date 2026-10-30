@@ -1,4 +1,5 @@
 import cors from "cors";
+import mongoose from "mongoose";
 import express from "express";
 import path from "path";
 import router from "./router";
@@ -24,6 +25,12 @@ app.use(morgan(MORGAN_FORMAT));
 /** 2-SESSIONS **/
 
 /** 3-VIEWS **/
+
+// liveness + database state, no auth
+app.get("/health", (req, res) => {
+  const db = mongoose.connection.readyState === 1;
+  res.status(db ? 200 : 503).json({ status: db ? "ok" : "degraded", db, uptime: Math.round(process.uptime()) });
+});
 
 /** 4-ROUTERS **/
 app.use("/", router);
