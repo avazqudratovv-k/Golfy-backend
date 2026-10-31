@@ -11,7 +11,7 @@ See `README.md` for the endpoint table, env vars and demo logins.
 - Local DB without touching Atlas: `MONGO_URL=mongodb://127.0.0.1:27018/golfy npm run ...` (env vars override `.env`)
 
 ## Folder map
-`src/controllers` HTTP · `src/models/*.service.ts` business logic · `src/schema` Mongoose · `src/libs` enums/types/utils · `src/seed.ts` · `scripts/seed-images.py`
+`src/controllers` HTTP · `src/models/*.service.ts` business logic · `src/schema` Mongoose · `src/libs` enums/types/utils · `src/seed.ts` · `CREDITS.md` (demo photo attributions, Wikimedia Commons)
 
 ## Hard rules
 1. Do NOT change architecture or business logic (booking rules, pricing, statuses, auth flow, review rules). Backend work is additive only: new endpoints/fields/files; never change existing response shapes or routes in a breaking way.
