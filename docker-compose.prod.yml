@@ -1,0 +1,45 @@
+# Production stack for a single VPS behind host nginx. NO MongoDB here: MONGO_URL points at Atlas.
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Ports are published on 127.0.0.1 only; nginx is the single public entry point. See docs/DEPLOY.md.
+x-common: &common
+  build:
+    context: .
+    dockerfile: Dockerfile.prod
+  image: golfy-backend:prod
+  restart: unless-stopped
+  env_file: .env.production
+  volumes:
+    - ./data/uploads:/app/uploads
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  api:
+    <<: *common
+    environment:
+      PORT: "3011"
+    ports:
+      - "127.0.0.1:4200:3011"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3011/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  admin-api:
+    <<: *common
+    command: ["sh", "-c", "mkdir -p uploads/venues uploads/avatars && exec node dist/serverAdmin.js"]
+    environment:
+      ADMIN_PORT: "3012"
+    ports:
+      - "127.0.0.1:4201:3012"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3012/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

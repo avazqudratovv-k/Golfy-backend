@@ -6,3 +6,7 @@ dist
 
 # uploaded images live on disk, not in git
 uploads/
+
+# production
+.env.production
+data/

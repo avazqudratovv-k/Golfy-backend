@@ -4,3 +4,12 @@ uploads
 .env
 .git
 tests
+.env.*
+!.env.example
+!.env.production.example
+data
+docs
+.github
+uploads
+*.md
+!CREDITS.md

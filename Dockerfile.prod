@@ -1,0 +1,24 @@
+# Production image: compiles TypeScript, runs plain JS as the unprivileged "node" user.
+# Used by docker-compose.prod.yml (see docs/DEPLOY.md). The local dev image stays in ./Dockerfile.
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
+
+FROM node:20-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+COPY --from=build /app/dist ./dist
+# needed by `node dist/seed.js` (copies the photos into uploads/ and the credits file next to them)
+COPY seed-assets ./seed-assets
+COPY CREDITS.md ./
+RUN mkdir -p uploads && chown -R node:node /app
+USER node
+EXPOSE 3011 3012
+# uploads/ is a bind mount in production; make sure the sub-folders multer writes to exist
+CMD ["sh", "-c", "mkdir -p uploads/venues uploads/avatars && exec node dist/server.js"]
