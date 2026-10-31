@@ -19,5 +19,8 @@ See `README.md` for the endpoint table, env vars and demo logins.
 3. Never print or commit secrets or `.env` values.
 4. Don't delete user data. The seed may only touch records it tagged as demo (`@seed.golfy.dev` emails, venue names listed in `src/seed.ts`).
 
+## Logo
+`docs/brand/` holds the SVG logo set (used in the README); the apps keep their own copy in `public/brand/` (same files). Do not add other logo variants.
+
 ## Out of scope for now
 KST day boundaries, Toss Payments, AI features, Korean UI language, tests/CI/Docker, deployment.

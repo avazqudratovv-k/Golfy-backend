@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/brand/golfy-logo.svg" alt="Golfy" height="56"></p>
+
 # Golfy backend
 
 API for **Golfy**, an hourly golf-venue booking platform (courses, simulator bays and driving ranges).

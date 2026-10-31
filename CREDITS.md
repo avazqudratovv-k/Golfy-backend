@@ -8,13 +8,13 @@ All venue and hero photographs in this project are real photographs from [Wikime
 
 File names are the demo venue slug plus a number (`<slug>-1.jpg` ...) under `uploads/venues/seed/`, or `hero.jpg` / `auth.jpg` in the player app's `public/img/`.
 
-There are 59 photos.
+There are 58 photos.
 
 ## 18th Hole, pebble beach
 - Author: glwx
 - Licence: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0)
 - Source: <https://commons.wikimedia.org/wiki/File:18th_Hole,_pebble_beach.jpg>
-- Used as: `daegu-dongseongro-2.jpg`
+- Used as: `auth.jpg (player app)`, `daegu-dongseongro-2.jpg`
 
 ## 1st Tee Sunrise (33977722393)
 - Author: Chad Sparkes from Kissimmee,Florida, United States
@@ -63,12 +63,6 @@ There are 59 photos.
 - Licence: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0)
 - Source: <https://commons.wikimedia.org/wiki/File:Ballybunion_Golf_Club_-_10th_hole.jpg>
 - Used as: `gangnam-skyline-3.jpg`, `itaewon-par-three-2.jpg`
-
-## Benbulben from CoSligo golfcourse
-- Author: Rosemallow at English Wikipedia
-- Licence: [CC BY 2.5](https://creativecommons.org/licenses/by/2.5)
-- Source: <https://commons.wikimedia.org/wiki/File:Benbulben_from_CoSligo_golfcourse.jpg>
-- Used as: `auth.jpg (player app)`
 
 ## Bruntsfield Links Golf Club - geograph.org.uk - 7912534
 - Author: Richard Webb
