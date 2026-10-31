@@ -83,7 +83,7 @@ type SeedVenue = {
   name: string;
   slug: string;
   location: string;
-  price: number;
+  price: number; // thousands of won per hour (78 = ₩78,000)
   type: VenueType;
   status?: VenueStatus;
   pop: number; // relative demand, 1 = quiet, 10 = always full
@@ -307,7 +307,7 @@ async function run() {
       venue = await VenueModel.create({
         venueName: v.name,
         venueLocation: v.location,
-        pricePerHour: v.price,
+        pricePerHour: v.price * 1000, // won
         venueType: v.type,
         venueStatus: v.status ?? VenueStatus.ACTIVE,
         venueDesc: v.desc,
