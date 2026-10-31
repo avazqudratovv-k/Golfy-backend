@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      # in-memory MongoDB (downloaded once by mongodb-memory-server); no external database needed
+      - run: npm test
+        env:
+          TZ: America/Los_Angeles
+      - run: npm test
+        env:
+          TZ: Asia/Seoul

@@ -5,7 +5,7 @@ import app from './app';
 
 mongoose
   .connect(process.env.MONGO_URL as string, {})
-  .then((data) => {
+  .then(() => {
     console.log("MONGODB successful connection"); 
     const PORT = process.env.PORT ?? 3011;
     app.listen(PORT, function () {

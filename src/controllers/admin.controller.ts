@@ -21,6 +21,8 @@ adminController.adminSignup = async (req: Request, res: Response) => {
     console.log("adminSignup");
     // optional lock: when ADMIN_SIGNUP_SECRET is set, signup must present it
     const secret = process.env.ADMIN_SIGNUP_SECRET;
+    // role and status are never taken from the client
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { adminSecret, role, status, ...rest } = req.body ?? {};
     if (secret && (req.header("x-admin-secret") ?? adminSecret) !== secret)
       throw new Errors(HttpCode.FORBIDDEN, Message.NOT_ADMIN);

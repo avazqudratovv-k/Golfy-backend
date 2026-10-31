@@ -1,0 +1,54 @@
+# LOCAL DEVELOPMENT ONLY: MongoDB + both APIs + a one-shot seed. No hosting config.
+#   docker compose up --build        (then run the two React apps on your machine: yarn start)
+# The React apps live in sibling repos and talk to localhost:3011 / 3012, which this file publishes.
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  seed:
+    build: .
+    command: npm run seed:reset
+    environment: &env
+      MONGO_URL: mongodb://mongo:27017/golfy
+      SECRET_TOKEN: local-dev-only-secret-change-me
+      NODE_ENV: development
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  api:
+    build: .
+    command: npm run start
+    environment: *env
+    ports:
+      - "3011:3011"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  admin-api:
+    build: .
+    command: npm run start:admin
+    environment: *env
+    ports:
+      - "3012:3012"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+volumes:
+  mongo-data:
+  uploads:
