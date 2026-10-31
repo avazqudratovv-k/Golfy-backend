@@ -4,7 +4,7 @@
 
 [English](README.md) · [한국어](README.ko.md)
 
-![tests](https://img.shields.io/badge/tests-76%20passing-2e7d32) ![node](https://img.shields.io/badge/node-20%20%7C%2022-0F3D2E) ![timezone](https://img.shields.io/badge/예약%20기준일-KST-E8743B)
+[![CI](https://github.com/avazqudratovv-mit/Golfy-backend/actions/workflows/ci.yml/badge.svg?branch=portfolio-v2)](https://github.com/avazqudratovv-mit/Golfy-backend/actions/workflows/ci.yml) ![node](https://img.shields.io/badge/node-20%20%7C%2022-0F3D2E) ![timezone](https://img.shields.io/badge/예약%20기준일-KST-E8743B)
 
 **Golfy**는 골프장, 스크린골프, 골프연습장을 1시간 단위로 예약하는 서비스의 API입니다.
 포트폴리오 프로젝트이며, 시설은 모두 가상의 데모 데이터이고 결제는 시뮬레이션입니다.
@@ -14,8 +14,8 @@
 1. **golfy-backend**(이 저장소): 하나의 TypeScript 코드베이스에서 Express 서버 두 개를 하나의 MongoDB와 함께 운영합니다.
 2. **회원 API**(`:3011`)는 회원 앱을 위한 API입니다: 시설 탐색, 빈 시간 확인, 예약, 결제(시뮬레이션), 리뷰, 즐겨찾기.
 3. **관리자 API**(`:3012`)는 직원용 앱을 위한 API입니다: 대시보드, 회원, 시설, 예약, 문의함.
-4. **[golfy-frontend](../golfy-frontend)**(`:3000`)는 회원용 웹 앱입니다(React, 기본 한국어 + EN 전환).
-5. **[golfy-admin](../../golfy-admin)**(`:3001`)은 직원용 대시보드입니다(React, KO | EN).
+4. **[golfy-frontend](https://github.com/avazqudratovv-mit/Golfy-Frontend-User)**(`:3000`)는 회원용 웹 앱입니다(React, 기본 한국어 + EN 전환).
+5. **[golfy-admin](https://github.com/avazqudratovv-mit/Golfy-Frontend-Admin)**(`:3001`)은 직원용 대시보드입니다(React, KO | EN).
 6. 두 앱 모두 CRA + TypeScript, 직접 작성한 CSS와 같은 디자인 토큰을 사용하며 이 API와만 통신합니다.
 7. 인증은 httpOnly 쿠키의 JWT입니다. 앱은 `withCredentials`만 사용하고 토큰을 읽지 않습니다.
 8. 예약 날짜는 **한국 표준시(KST)** 달력 날짜이며 KST 00:00으로 저장됩니다. 시간(HH:MM)은 KST 기준입니다.
