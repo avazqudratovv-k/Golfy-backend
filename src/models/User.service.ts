@@ -60,7 +60,7 @@ class UserService {
     try {
       const result = await this.userModel.create(data);
       result.password = "";
-      return result.toJSON();
+      return result.toJSON() as any;
     } catch (err: any) {
       console.error("Error, model:signup", err);
       if (err?.code === 11000)
@@ -90,7 +90,7 @@ class UserService {
       throw new Errors(HttpCode.UNAUTHORIZED, Message.WRONG_PASSWORD);
     }
 
-    return await this.userModel.findById(user._id).lean().exec();
+    return (await this.userModel.findById(user._id).lean().exec()) as any;
   }
 
   // live role/status of the account behind a token (any status)
@@ -98,11 +98,11 @@ class UserService {
     user: User
   ): Promise<{ role: UserRole; status: UserStatus } | null> {
     const userId = shapeIntoMongooseObjectId(user._id);
-    return await this.userModel
+    return (await this.userModel
       .findById(userId)
       .select("role status")
       .lean()
-      .exec();
+      .exec()) as any;
   }
 
   public async getMyProfile(user: User): Promise<User> {
@@ -112,7 +112,7 @@ class UserService {
       .exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
 
-    return result;
+    return result as any;
   }
 
   // only these fields are editable; role/status/email can never be changed here
@@ -165,7 +165,7 @@ class UserService {
     }
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.UPDATE_FAILED);
 
-    return result;
+    return result as any;
   }
 
   /** ADMIN **/
@@ -188,7 +188,7 @@ class UserService {
     const result = await query.exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
 
-    return result;
+    return result as any;
   }
 
   public async countUsers(opts: any = {}): Promise<number> {
@@ -197,6 +197,8 @@ class UserService {
 
   public async updateUserStatus(input: UserUpdateInput): Promise<User> {
     const userId = shapeIntoMongooseObjectId(input?._id);
+    if (isNonEmptyString(input?.password) && input.password.length < MIN_PASSWORD_LENGTH)
+      throw new Errors(HttpCode.BAD_REQUEST, Message.PASSWORD_TOO_SHORT);
     const update = await this.buildProfileUpdate(input);
     if (input.status !== undefined) {
       if (!Object.values(UserStatus).includes(input.status))
@@ -215,7 +217,7 @@ class UserService {
     }
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.UPDATE_FAILED);
 
-    return result;
+    return result as any;
   }
 }
 

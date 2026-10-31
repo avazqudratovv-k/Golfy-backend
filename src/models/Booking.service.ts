@@ -154,7 +154,7 @@ class BookingService {
             throw this.conflictError(raced);
         }
 
-        return created;
+        return created as any;
     }
 
     // adds venueData and `reviewed` (true when the booking already has a review)
@@ -236,7 +236,7 @@ class BookingService {
         if (!booking) throw new Errors(HttpCode.NOT_FOUND, Message.BOOKING_NOT_FOUND);
 
         const current = booking.status as BookingStatus;
-        if (current === status) return booking;
+        if (current === status) return booking as any;
 
         if (!ALLOWED_TRANSITIONS[current].includes(status))
             throw new Errors(HttpCode.BAD_REQUEST, Message.INVALID_STATUS_CHANGE);
@@ -272,7 +272,7 @@ class BookingService {
         } else if (current === BookingStatus.CONFIRMED && status === BookingStatus.CANCELLED) {
             await this.venueService.decrementBookingCount(result.venueId);
         }
-        return result;
+        return result as any;
     }
 
     /** ADMIN **/

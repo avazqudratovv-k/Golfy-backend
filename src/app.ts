@@ -8,16 +8,21 @@ import cookieParser from "cookie-parser";
 import multer from "multer";
 import { NextFunction, Request, Response } from "express";
 import Errors, { HttpCode } from "./libs/utils/Errors";
-import { MORGAN_FORMAT, corsOptions } from "./libs/utils/config";
+import helmet from "helmet";
+import { BODY_LIMIT, MORGAN_FORMAT, corsOptions, parseTrustProxy } from "./libs/utils/config";
 import { serveUploads } from "./libs/utils/uploads";
 
 /** 1-ENTRANCE **/
 const app = express();
 app.disable("x-powered-by");
+const trustProxy = parseTrustProxy();
+if (trustProxy !== undefined) app.set("trust proxy", trustProxy); // so the rate limiter sees the real client IP behind a proxy
+// security headers; images are loaded by the frontends from another origin, so CORP must stay cross-origin
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", serveUploads);
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
+app.use(express.json({ limit: BODY_LIMIT }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(morgan(MORGAN_FORMAT));

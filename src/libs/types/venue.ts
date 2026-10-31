@@ -1,4 +1,5 @@
-import { ObjectId } from "mongoose";
+import { Types } from "mongoose";
+type ObjectId = Types.ObjectId;
 import { VenueStatus, VenueType } from "../enums/venue.enum";
 
 export interface Venue {

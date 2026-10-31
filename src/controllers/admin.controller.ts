@@ -3,7 +3,7 @@ import { T } from "../libs/types/common";
 import UserService from "../models/User.service";
 import { ExtendedRequest, LoginInput, User, UserInput, UserUpdateInput } from "../libs/types/user";
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
-import { AUTH_TIMER, parsePagination, wantsPaging } from "../libs/utils/config";
+import { authCookieOptions, clearCookieOptions, parsePagination, wantsPaging } from "../libs/utils/config";
 import AuthService from "../models/Auth.service";
 import DashboardService from "../models/Dashboard.service";
 import { UserRole, UserStatus } from "../libs/enums/user.enum";
@@ -28,17 +28,19 @@ adminController.adminSignup = async (req: Request, res: Response) => {
     const input: UserInput = rest;
     const result: User = await userService.signup(input, UserRole.ADMIN);
     const token = await authService.createToken(result);
-    res.cookie("adminAccessToken", token, {
-      maxAge: AUTH_TIMER * 3600 * 1000,
-      httpOnly: false,
-    });
+    res.cookie("adminAccessToken", token, authCookieOptions());
 
-    res.status(HttpCode.CREATED).json({ user: result, accessToken: token });
+    res.status(HttpCode.CREATED).json({ user: result });
   } catch (err) {
     console.log("Error, adminSignup:", err);
     if (err instanceof Errors) res.status(err.code).json(err);
     else res.status(Errors.standard.code).json(Errors.standard);
   }
+};
+
+// tells the admin app whether signup needs the admin secret (never reveals the secret itself)
+adminController.signupInfo = (req: Request, res: Response) => {
+  res.status(HttpCode.OK).json({ secretRequired: !!process.env.ADMIN_SIGNUP_SECRET });
 };
 
 adminController.adminLogin = async (req: Request, res: Response) => {
@@ -52,12 +54,9 @@ adminController.adminLogin = async (req: Request, res: Response) => {
     }
 
     const token = await authService.createToken(result);
-    res.cookie("adminAccessToken", token, {
-      maxAge: AUTH_TIMER * 3600 * 1000,
-      httpOnly: false,
-    });
+    res.cookie("adminAccessToken", token, authCookieOptions());
 
-    res.status(HttpCode.OK).json({ user: result, accessToken: token });
+    res.status(HttpCode.OK).json({ user: result });
   } catch (err) {
     console.log("Error, adminLogin:", err);
     if (err instanceof Errors) res.status(err.code).json(err);
@@ -68,7 +67,7 @@ adminController.adminLogin = async (req: Request, res: Response) => {
 adminController.adminLogout = (req: ExtendedRequest, res: Response) => {
   try {
     console.log("adminLogout");
-    res.cookie("adminAccessToken", null, { maxAge: 0, httpOnly: false });
+    res.clearCookie("adminAccessToken", clearCookieOptions());
     res.status(HttpCode.OK).json({ logout: true });
   } catch (err) {
     console.log("Error, adminLogout:", err);
@@ -99,10 +98,17 @@ adminController.getAllUsers = async (req: Request, res: Response) => {
   }
 };
 
-adminController.updateUserStatus = async (req: Request, res: Response) => {
+adminController.updateUserStatus = async (req: ExtendedRequest, res: Response) => {
   try {
     console.log("updateUserStatus");
     const input: UserUpdateInput = req.body;
+    // an admin can never block or delete their own account
+    if (
+      input?.status !== undefined &&
+      input.status !== UserStatus.ACTIVE &&
+      String(input?._id) === String(req.user?._id)
+    )
+      throw new Errors(HttpCode.FORBIDDEN, Message.CANNOT_CHANGE_SELF);
     const result = await userService.updateUserStatus(input);
 
     res.status(HttpCode.OK).json(result);

@@ -17,6 +17,7 @@ export enum Message {
     CREATE_FAILED = "Create is failed",
     UPDATE_FAILED = "Update is failed",
     NOT_ADMIN = "You do not have admin access!",
+    CANNOT_CHANGE_SELF = "You cannot block or delete your own account!",
 
     USED_EMAIL_PHONE = "You are inserting already used email or phone!",
     EMAIL_USED = "This email is already in use!",

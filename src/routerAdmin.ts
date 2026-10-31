@@ -11,6 +11,7 @@ const router = express.Router();
 const adminAuthLimiter = rateLimit(50, 15 * 60 * 1000);
 
 router.post("/signup", adminAuthLimiter, adminController.adminSignup);
+router.get("/signup-info", adminController.signupInfo);
 router.post("/login", adminAuthLimiter, adminController.adminLogin);
 router.post("/logout", adminController.verifyAdmin, adminController.adminLogout);
 

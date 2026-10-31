@@ -9,7 +9,7 @@ import {
   UserUpdateInput,
 } from "../libs/types/user";
 import Errors, { HttpCode, Message } from "../libs/utils/Errors";
-import { AUTH_TIMER } from "../libs/utils/config";
+import { authCookieOptions, clearCookieOptions } from "../libs/utils/config";
 import AuthService from "../models/Auth.service";
 import { UserStatus } from "../libs/enums/user.enum";
 
@@ -24,12 +24,9 @@ userController.signup = async (req: Request, res: Response) => {
     const input: UserInput = req.body,
       result: User = await userService.signup(input);
     const token = await authService.createToken(result);
-    res.cookie("accessToken", token, {
-      maxAge: AUTH_TIMER * 3600 * 1000,
-      httpOnly: false,
-    });
+    res.cookie("accessToken", token, authCookieOptions());
 
-    res.status(HttpCode.CREATED).json({ user: result, accessToken: token });
+    res.status(HttpCode.CREATED).json({ user: result });
   } catch (err) {
     console.log("Error, signup:", err);
     if (err instanceof Errors) res.status(err.code).json(err);
@@ -44,12 +41,9 @@ userController.login = async (req: Request, res: Response) => {
       result = await userService.login(input),
       token = await authService.createToken(result);
 
-    res.cookie("accessToken", token, {
-      maxAge: AUTH_TIMER * 3600 * 1000,
-      httpOnly: false,
-    });
+    res.cookie("accessToken", token, authCookieOptions());
 
-    res.status(HttpCode.OK).json({ user: result, accessToken: token });
+    res.status(HttpCode.OK).json({ user: result });
   } catch (err) {
     console.log("Error, login:", err);
     if (err instanceof Errors) res.status(err.code).json(err);
@@ -60,7 +54,7 @@ userController.login = async (req: Request, res: Response) => {
 userController.logout = (req: ExtendedRequest, res: Response) => {
   try {
     console.log("logout");
-    res.cookie("accessToken", null, { maxAge: 0, httpOnly: false });
+    res.clearCookie("accessToken", clearCookieOptions());
     res.status(HttpCode.OK).json({ logout: true });
   } catch (err) {
     console.log("Error, logout:", err);
@@ -115,7 +109,7 @@ userController.verifyAuth = async (
     if (!freshUser || freshUser.status === UserStatus.DELETE)
       throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
     if (freshUser.status === UserStatus.BLOCK) {
-      res.cookie("accessToken", null, { maxAge: 0, httpOnly: false });
+      res.clearCookie("accessToken", clearCookieOptions());
       throw new Errors(HttpCode.FORBIDDEN, Message.BLOCKED_USER);
     }
 

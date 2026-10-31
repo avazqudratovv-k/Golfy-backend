@@ -1,4 +1,5 @@
-import { ObjectId } from "mongoose";
+import { Types } from "mongoose";
+type ObjectId = Types.ObjectId;
 import { UserRole, UserStatus } from "../enums/user.enum";
 import { Request } from "express";
 

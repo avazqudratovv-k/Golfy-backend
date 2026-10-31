@@ -94,7 +94,7 @@ class VenueService {
       .exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.NO_DATA_FOUND);
 
-    return result;
+    return result as any;
   }
 
   // up to 4 other active venues: same type first, then closest price, then most popular
@@ -182,7 +182,7 @@ class VenueService {
       .findOneAndUpdate({ _id: shapeIntoMongooseObjectId(id), venueStatus: { $ne: VenueStatus.DELETE } }, { venueStatus: status }, { new: true })
       .exec();
     if (!result) throw new Errors(HttpCode.NOT_FOUND, Message.UPDATE_FAILED);
-    return result;
+    return result as any;
   }
 
   // only these fields can be written by the client (never bookingCount etc.)
@@ -205,7 +205,7 @@ class VenueService {
 
   public async createNewVenue(input: VenueInput): Promise<Venue> {
     try {
-      return await this.venueModel.create(this.pickVenueFields(input));
+      return (await this.venueModel.create(this.pickVenueFields(input))) as any;
     } catch (err: any) {
       console.error("Error, model:createNewVenue:", err);
       if (err?.code === 11000) throw new Errors(HttpCode.BAD_REQUEST, Message.VENUE_EXISTS);
@@ -256,7 +256,7 @@ class VenueService {
       .filter((img) => img.startsWith("uploads/venues/") && !img.includes(".."))
       .forEach((img) => fs.unlink(path.join(process.cwd(), img), () => {}));
 
-    return result;
+    return result as any;
   }
 
   public async incrementBookingCount(venueId: any): Promise<void> {

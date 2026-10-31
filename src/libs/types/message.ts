@@ -1,4 +1,5 @@
-import { ObjectId } from "mongoose";
+import { Types } from "mongoose";
+type ObjectId = Types.ObjectId;
 
 export interface Message {
     _id: ObjectId;
