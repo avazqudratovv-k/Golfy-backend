@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import { kstDateString, kstDayStart, kstWeekday } from "./libs/utils/kst";
 import fs from "fs";
 import path from "path";
 import mongoose from "mongoose";
@@ -198,8 +199,6 @@ const MESSAGES: [string, string, string, boolean][] = [
   ["이수민", `sumin${SEED_DOMAIN}`, "결제 후 취소하면 환불은 어떻게 되나요?", false],
 ];
 
-const startOfUtcDay = (d: Date) =>
-  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 const hhmm = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
@@ -257,7 +256,7 @@ async function run() {
   if (process.argv.includes("--reset")) await reset();
 
   const now = new Date();
-  const today = startOfUtcDay(now);
+  const today = kstDayStart(now); // booking dates are KST calendar days (00:00 KST)
 
   /** users **/
   const hash = await bcrypt.hash(USER_PASSWORD, 10);
@@ -346,7 +345,7 @@ async function run() {
       const offset = rand() < 0.76 || inactive ? -1 - Math.floor(90 * Math.pow(rand(), 1.25)) : randInt(1, maxOffset);
       if (offset > maxOffset && !inactive) continue;
       const day = new Date(today.getTime() + offset * DAY);
-      if (rand() > DOW_WEIGHT[day.getUTCDay()] / 2) continue;
+      if (rand() > DOW_WEIGHT[kstWeekday(day)] / 2) continue;
 
       let hours: number, startHour: number;
       if (def.type === C) {
@@ -382,7 +381,7 @@ async function run() {
 
       // cancelled bookings free their slot; everything else must not overlap
       if (status !== BookingStatus.CANCELLED) {
-        const key = `${venue._id}|${day.toISOString().slice(0, 10)}`;
+        const key = `${venue._id}|${kstDateString(day)}`;
         const used = taken.get(key) ?? new Set<number>();
         let free = true;
         for (let h = startHour; h < startHour + hours; h++) if (used.has(h)) free = false;

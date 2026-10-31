@@ -1,3 +1,5 @@
+import { kstDayStart } from "./kst";
+
 // "HH:MM" -> minutes since midnight. Returns null when malformed.
 // asEnd: "24:00" and "00:00" are accepted as the end of the day.
 export const parseTimeToMinutes = (value: any, asEnd = false): number | null => {
@@ -12,15 +14,12 @@ export const parseTimeToMinutes = (value: any, asEnd = false): number | null => 
   return asEnd && minutes === 0 ? 1440 : minutes;
 };
 
-export const startOfUtcDay = (date: Date): Date =>
-  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-
 export const rangesOverlap = (aStart: number, aEnd: number, bStart: number, bEnd: number) =>
   aStart < bEnd && aEnd > bStart;
 
-// moment the booked slot is over
-export const bookingHasEnded = (booking: { bookingDate: Date; endTime: string }): boolean => {
+// the booked slot is over: end time is KST wall-clock on the booking's KST calendar day
+export const bookingHasEnded = (booking: { bookingDate: Date; endTime: string }, now = Date.now()): boolean => {
   const end = parseTimeToMinutes(booking.endTime, true);
   if (end === null) return false;
-  return Date.now() >= new Date(booking.bookingDate).getTime() + end * 60000;
+  return now >= kstDayStart(new Date(booking.bookingDate)).getTime() + end * 60000;
 };

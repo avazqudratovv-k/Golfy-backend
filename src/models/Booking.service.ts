@@ -9,8 +9,8 @@ import {
     bookingHasEnded,
     parseTimeToMinutes,
     rangesOverlap,
-    startOfUtcDay,
 } from "../libs/utils/booking";
+import { DAY_MS, kstDateString, kstDayStart, parseKstDay } from "../libs/utils/kst";
 import VenueService from "./Venue.service";
 
 // allowed status changes (same status = no-op)
@@ -37,8 +37,8 @@ class BookingService {
         excludeId?: any,
         onlyEarlier = false
     ): Promise<any[]> {
-        const dayStart = startOfUtcDay(date);
-        const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
+        const dayStart = kstDayStart(date);
+        const dayEnd = new Date(dayStart.getTime() + DAY_MS);
         const holdCutoff = new Date(Date.now() - PENDING_HOLD_MINUTES * 60000);
 
         const query: any = {
@@ -77,9 +77,8 @@ class BookingService {
     public async getAvailability(venueId: string, dateInput: any) {
         const venue: any = await this.venueService.getVenue(venueId);
 
-        const date = new Date(dateInput);
-        if (!dateInput || isNaN(date.getTime()))
-            throw new Errors(HttpCode.BAD_REQUEST, Message.DATE_TIME_REQUIRED);
+        const date = parseKstDay(dateInput);
+        if (!date) throw new Errors(HttpCode.BAD_REQUEST, Message.DATE_TIME_REQUIRED);
 
         const blocking = await this.findBlocking(venue._id, date);
         const busy = blocking
@@ -91,7 +90,7 @@ class BookingService {
 
         return {
             venueId: String(venue._id),
-            date: startOfUtcDay(date).toISOString().slice(0, 10),
+            date: kstDateString(date),
             pricePerHour: venue.pricePerHour,
             slots: BOOKING_HOURS.map((startTime, i) => ({
                 startTime,
@@ -116,9 +115,9 @@ class BookingService {
         const userId = shapeIntoMongooseObjectId(user._id);
         const venueId = shapeIntoMongooseObjectId(input?.venueId);
 
-        const date = new Date(input?.bookingDate as any);
-        if (!input?.bookingDate || isNaN(date.getTime()))
-            throw new Errors(HttpCode.BAD_REQUEST, Message.DATE_TIME_REQUIRED);
+        // the booking date is a KST calendar day, stored as that day's 00:00 KST
+        const date = parseKstDay(input?.bookingDate);
+        if (!date) throw new Errors(HttpCode.BAD_REQUEST, Message.DATE_TIME_REQUIRED);
 
         const start = parseTimeToMinutes(input.startTime);
         const end = parseTimeToMinutes(input.endTime, true);
@@ -284,9 +283,10 @@ class BookingService {
         if (opts.status && Object.values(BookingStatus).includes(opts.status)) before.status = opts.status;
         if (opts.venueId) before.venueId = shapeIntoMongooseObjectId(String(opts.venueId));
         const range: any = {};
-        const from = new Date(opts.from), to = new Date(opts.to);
-        if (opts.from && !isNaN(from.getTime())) range.$gte = from;
-        if (opts.to && !isNaN(to.getTime())) range.$lte = to;
+        // from/to are KST calendar days, both inclusive
+        const from = parseKstDay(opts.from), to = parseKstDay(opts.to);
+        if (from) range.$gte = from;
+        if (to) range.$lt = new Date(to.getTime() + DAY_MS);
         if (Object.keys(range).length) before.bookingDate = range;
 
         const after: any = {};

@@ -4,19 +4,19 @@ import VenueModel from "../schema/Venue.model";
 import { BookingStatus } from "../libs/enums/booking.enum";
 import { UserRole, UserStatus } from "../libs/enums/user.enum";
 import { VenueStatus } from "../libs/enums/venue.enum";
-import { startOfUtcDay } from "../libs/utils/booking";
+import { DAY_MS, KST_TIME_ZONE, kstDateString, kstDayStart, kstMonthStart, kstMonthString } from "../libs/utils/kst";
 
-const DAY = 24 * 3600 * 1000;
+const DAY = DAY_MS;
 const COUNTED = { $in: [BookingStatus.CONFIRMED, BookingStatus.FINISHED] };
 
 class DashboardService {
-  // numbers and chart series for the admin dashboard (UTC days / months)
+  // numbers and chart series for the admin dashboard (KST days / months)
   public async getDashboard() {
     const now = new Date();
-    const since30 = startOfUtcDay(new Date(now.getTime() - 29 * DAY));
+    const since30 = kstDayStart(new Date(now.getTime() - 29 * DAY));
     const since30d = new Date(now.getTime() - 30 * DAY);
     const since60d = new Date(now.getTime() - 60 * DAY);
-    const since6m = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
+    const since6m = kstMonthStart(now, 5);
 
     const [totals, daily, monthly, statuses, top, latest, users, venues, windows, newUsers, newVenues] =
       await Promise.all([
@@ -28,7 +28,7 @@ class DashboardService {
           { $match: { status: COUNTED, createdAt: { $gte: since30 } } },
           {
             $group: {
-              _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+              _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: KST_TIME_ZONE } },
               bookings: { $sum: 1 },
               revenue: { $sum: "$price" },
             },
@@ -38,7 +38,7 @@ class DashboardService {
           { $match: { status: COUNTED, createdAt: { $gte: since6m } } },
           {
             $group: {
-              _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+              _id: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: KST_TIME_ZONE } },
               bookings: { $sum: 1 },
               revenue: { $sum: "$price" },
             },
@@ -131,15 +131,14 @@ class DashboardService {
 
     const dailyMap = new Map<string, any>(daily.map((d: any) => [d._id, d]));
     const bookingsByDay = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date(since30.getTime() + i * DAY).toISOString().slice(0, 10);
+      const date = kstDateString(new Date(since30.getTime() + i * DAY));
       const hit = dailyMap.get(date);
       return { date, bookings: hit?.bookings ?? 0, revenue: hit?.revenue ?? 0 };
     });
 
     const monthlyMap = new Map<string, any>(monthly.map((d: any) => [d._id, d]));
     const revenueByMonth = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(Date.UTC(since6m.getUTCFullYear(), since6m.getUTCMonth() + i, 1));
-      const month = d.toISOString().slice(0, 7);
+      const month = kstMonthString(kstMonthStart(since6m, -i));
       const hit = monthlyMap.get(month);
       return { month, bookings: hit?.bookings ?? 0, revenue: hit?.revenue ?? 0 };
     });
