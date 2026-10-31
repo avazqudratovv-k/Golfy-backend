@@ -203,16 +203,26 @@ const startOfUtcDay = (d: Date) =>
 const hhmm = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
-// venue photos: real photographs from Wikimedia Commons, 3 per venue, named <slug>-1..3.jpg (see CREDITS.md)
+// venue photos: real photographs from Wikimedia Commons, 3 per venue, tracked in seed-assets/venues/
+// as <slug>-1..3.webp and copied into uploads/venues/seed/ (git-ignored) so a fresh clone shows them. See CREDITS.md.
 const IMAGES_PER_VENUE = 3;
 const ensureImages = (): void => {
-  const dir = path.join(process.cwd(), "uploads/venues/seed");
-  const missing = VENUES.filter((v) => !fs.existsSync(path.join(dir, `${v.slug}-${IMAGES_PER_VENUE}.jpg`)));
-  if (missing.length)
-    console.warn(`Photos missing in uploads/venues/seed for ${missing.length} venues (e.g. ${missing[0].slug}); they will be created with fewer or no pictures.`);
+  const from = path.join(process.cwd(), "seed-assets/venues");
+  const to = path.join(process.cwd(), "uploads/venues/seed");
+  if (!fs.existsSync(from)) return console.warn("seed-assets/venues is missing; venues will be created without photos.");
+  fs.mkdirSync(to, { recursive: true });
+  let copied = 0;
+  for (const file of fs.readdirSync(from).filter((f) => f.endsWith(".webp"))) {
+    const dest = path.join(to, file);
+    if (!fs.existsSync(dest)) {
+      fs.copyFileSync(path.join(from, file), dest);
+      copied++;
+    }
+  }
+  if (copied) console.log(`Copied ${copied} venue photos into uploads/venues/seed/.`);
 };
 const imagesFor = (v: SeedVenue): string[] => {
-  return Array.from({ length: IMAGES_PER_VENUE }, (_, i) => `uploads/venues/seed/${v.slug}-${i + 1}.jpg`).filter((p) =>
+  return Array.from({ length: IMAGES_PER_VENUE }, (_, i) => `uploads/venues/seed/${v.slug}-${i + 1}.webp`).filter((p) =>
     fs.existsSync(path.join(process.cwd(), p))
   );
 };

@@ -68,7 +68,7 @@ npm run seed:reset   # removes ONLY demo data (see below), then recreates it
 Creates 24 venues (Gangnam, Seongsu, Pangyo, Hongdae, Busan, Jeju, Daegu, Incheon ...), 40 players, 2 admins, about 250 bookings
 over the last 90 days plus upcoming ones, about 150 reviews, favourites and contact messages. It is deterministic (seeded RNG) and idempotent.
 Demo records are recognised by `@seed.golfy.dev` emails and the venue names in `src/seed.ts`; nothing else is touched.
-**The venues are fictional demo data.** Their pictures are real photographs from Wikimedia Commons (CC0 / public domain / CC BY / CC BY-SA), so no real business is implied. The files live in `uploads/venues/seed/` (git-ignored, named `<slug>-1..3.jpg`) and every photo is credited in [CREDITS.md](CREDITS.md). If the files are missing the seed still runs, the venues just have no pictures.
+**The venues are fictional demo data.** Their pictures are real photographs from Wikimedia Commons (CC0 / public domain / CC BY / CC BY-SA), so no real business is implied. The 72 WebP files (about 200 KB each) are tracked in `seed-assets/venues/` (`<slug>-1..3.webp`); `npm run seed` copies the ones that are missing into `uploads/venues/seed/` (git-ignored), so a fresh clone plus a seed shows every photo. Each photo is credited in [CREDITS.md](CREDITS.md).
 
 Demo logins:
 
