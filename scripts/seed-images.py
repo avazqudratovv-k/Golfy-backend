@@ -1,6 +1,7 @@
 """Generates the demo venue images (illustrated golf scenes) into uploads/venues/seed/.
 Deterministic: the same venue slug + index always produces the same picture.
 Usage: python3 scripts/seed-images.py <slug>:<TYPE> ...   (TYPE = COURSE | RANGE | SIMULATOR)
+       python3 scripts/seed-images.py --hero <out.jpg> <TYPE> <variant> <width> <height>
 """
 import math, os, random, sys
 from PIL import Image, ImageDraw, ImageFilter
@@ -180,7 +181,20 @@ def sim(rnd, variant):
     d.line([(gx + 30, gy - h * .12), (w * .49, gy + 12)], fill=(180, 186, 190), width=7)
     return finish(img, rnd, .45)
 
+def hero(path, kind, variant, w, h):
+    # standalone pictures for the frontends (hero banner, sign-in panel)
+    global W, H
+    W, H = w, h
+    rnd = random.Random(f"hero-{kind}-{variant}")
+    img = {"COURSE": course, "RANGE": rng, "SIMULATOR": sim}[kind](rnd, variant)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path, quality=86, optimize=True)
+    print("ok", path)
+
 def main():
+    if sys.argv[1] == "--hero":
+        _, _, path, kind, variant, w, h = sys.argv
+        return hero(path, kind, int(variant), int(w), int(h))
     os.makedirs(OUT, exist_ok=True)
     for arg in sys.argv[1:]:
         slug, kind = arg.split(":")
