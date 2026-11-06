@@ -4,7 +4,7 @@
 
 [English](README.md) · [한국어](README.ko.md)
 
-[![CI](https://github.com/avazqudratovv-mit/Golfy-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/avazqudratovv-mit/Golfy-backend/actions/workflows/ci.yml) ![node](https://img.shields.io/badge/node-20%20%7C%2022-0F3D2E) ![timezone](https://img.shields.io/badge/booking%20days-KST-E8743B)
+[![CI](https://github.com/avazqudratovv-k/Golfy-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/avazqudratovv-k/Golfy-backend/actions/workflows/ci.yml) ![node](https://img.shields.io/badge/node-20%20%7C%2022-0F3D2E) ![timezone](https://img.shields.io/badge/booking%20days-KST-E8743B)
 
 API for **Golfy**, an hourly golf-venue booking platform for Korea (golf courses, screen-golf simulators and driving ranges).
 This is a portfolio project: the venues are fictional demo data and the payment is simulated.
@@ -14,8 +14,8 @@ This is a portfolio project: the venues are fictional demo data and the payment 
 1. **golfy-backend** (this repo): one TypeScript codebase, two Express servers on one MongoDB.
 2. The **user API** (`:3011`) serves the player app: browse venues, see free hours, book, "pay", review, favourite.
 3. The **admin API** (`:3012`) serves the staff app: dashboard, users, venues, bookings, contact inbox.
-4. **[golfy-frontend](https://github.com/avazqudratovv-mit/Golfy-Frontend-User)** (`:3000`) is the player web app (React, Korean by default with an EN toggle).
-5. **[golfy-admin](https://github.com/avazqudratovv-mit/Golfy-Frontend-Admin)** (`:3001`) is the staff dashboard (React, KO | EN).
+4. **[golfy-frontend](https://github.com/avazqudratovv-k/Golfy-Frontend-User)** (`:3000`) is the player web app (React, Korean by default with an EN toggle).
+5. **[golfy-admin](https://github.com/avazqudratovv-k/Golfy-Frontend-Admin)** (`:3001`) is the staff dashboard (React, KO | EN).
 6. Both apps are plain CRA + TypeScript with hand-written CSS and the same design tokens; they only talk to this API.
 7. Auth is a JWT in an httpOnly cookie; the apps use `withCredentials`, never read the token.
 8. A booking day is a **Korea Standard Time** calendar day stored as 00:00 KST; slot times are KST wall-clock.
