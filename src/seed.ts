@@ -28,6 +28,10 @@ import { BookingStatus } from "./libs/enums/booking.enum";
 const SEED_DOMAIN = "@seed.golfy.dev";
 const SEED_EMAIL_REGEX = /@seed\.golfy\.dev$/;
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "Admin123!";
+if (process.env.NODE_ENV === "production" && !process.env.SEED_ADMIN_PASSWORD) {
+  console.error("Set SEED_ADMIN_PASSWORD before seeding in production; the demo default is public.");
+  process.exit(1);
+}
 const USER_PASSWORD = "Password123!";
 const DAY = 24 * 3600 * 1000;
 
