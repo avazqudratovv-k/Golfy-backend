@@ -3,8 +3,8 @@
 Ubuntu VPS, host nginx + certbot, Docker for the two APIs. MongoDB stays on Atlas (no Mongo container).
 
 ```
-browser ──https──▶ nginx ─┬─ golfy.76-13-198-17.sslip.io        static player build, /api/ ─▶ 127.0.0.1:4200 ─▶ api (container :3011)
-                          └─ golfy-admin.76-13-198-17.sslip.io  static admin build,  /api/ ─▶ 127.0.0.1:4201 ─▶ admin-api (container :3012)
+browser ──https──▶ nginx ─┬─ golfy.<server-ip-dashed>.sslip.io        static player build, /api/ ─▶ 127.0.0.1:4200 ─▶ api (container :3011)
+                          └─ golfy-admin.<server-ip-dashed>.sslip.io  static admin build,  /api/ ─▶ 127.0.0.1:4201 ─▶ admin-api (container :3012)
 ```
 
 Everything is same-origin: the apps are built with `REACT_APP_API_URL=/api`, nginx strips the `/api/` prefix, and uploaded photos are served at `/api/uploads/...`. Cookies are first-party (`Secure`, `SameSite=Lax`).
@@ -21,7 +21,7 @@ sudo ufw allow 'Nginx Full' && sudo ufw allow OpenSSH   # only 80/443/22 are pub
 sudo mkdir -p /var/www/golfy/{player,admin}/releases && sudo chown -R "$USER": /var/www/golfy
 ```
 
-Atlas: add the VPS public IP (76.13.198.17) to *Network Access*.
+Atlas: add the VPS public IP (<server-ip>) to *Network Access*.
 
 ## 2. Backend
 
@@ -63,7 +63,7 @@ Demo logins are printed at the end (players `Password123!`, admins `Admin123!` u
 server {
     listen 80;
     listen [::]:80;
-    server_name golfy.76-13-198-17.sslip.io;
+    server_name golfy.<server-ip-dashed>.sslip.io;
 
     root /var/www/golfy/player/current;
     index index.html;
@@ -97,7 +97,7 @@ server {
 server {
     listen 80;
     listen [::]:80;
-    server_name golfy-admin.76-13-198-17.sslip.io;
+    server_name golfy-admin.<server-ip-dashed>.sslip.io;
 
     root /var/www/golfy/admin/current;
     index index.html;
@@ -132,11 +132,11 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ### TLS
 
-DNS for `*.76-13-198-17.sslip.io` resolves to the VPS automatically. Port 80 must be reachable.
+DNS for `*.<server-ip-dashed>.sslip.io` resolves to the VPS automatically. Port 80 must be reachable.
 
 ```bash
 sudo certbot --nginx --redirect --agree-tos -m you@example.com \
-  -d golfy.76-13-198-17.sslip.io -d golfy-admin.76-13-198-17.sslip.io
+  -d golfy.<server-ip-dashed>.sslip.io -d golfy-admin.<server-ip-dashed>.sslip.io
 sudo certbot renew --dry-run
 ```
 
@@ -150,7 +150,7 @@ The API base is baked in at build time; the shell variable overrides any local `
 # player app
 cd /Users/kenneth/Desktop/golfy-frontend
 yarn install --frozen-lockfile
-REACT_APP_API_URL=/api REACT_APP_SITE_URL=https://golfy.76-13-198-17.sslip.io yarn build
+REACT_APP_API_URL=/api REACT_APP_SITE_URL=https://golfy.<server-ip-dashed>.sslip.io yarn build
 
 # admin app
 cd /Users/kenneth/golfy-admin
@@ -161,7 +161,7 @@ REACT_APP_API_URL=/api yarn build
 Upload as a timestamped release, then flip the `current` symlink (this also gives instant rollback):
 
 ```bash
-HOST=deploy@76.13.198.17
+HOST=deploy@<server-ip>
 REL=$(date +%Y%m%d-%H%M%S)
 
 rsync -az --delete /Users/kenneth/Desktop/golfy-frontend/build/ $HOST:/var/www/golfy/player/releases/$REL/
@@ -206,12 +206,12 @@ Logs: `docker compose -f docker-compose.prod.yml logs -f --tail 100 api admin-ap
 
 ## 6. Checklist
 
-- [ ] Atlas Network Access allows 76.13.198.17
+- [ ] Atlas Network Access allows <server-ip>
 - [ ] `.env.production` filled in, `chmod 600`, never committed (it is in `.gitignore` and `.dockerignore`)
 - [ ] `data/uploads` owned by uid 1000
 - [ ] `docker compose ... ps` shows `api` and `admin-api` healthy; `ss -tlnp | grep -E '4200|4201'` shows `127.0.0.1` only
 - [ ] `nginx -t` OK; certificate issued; HTTP redirects to HTTPS
-- [ ] `https://golfy.76-13-198-17.sslip.io/api/health` and `https://golfy-admin.76-13-198-17.sslip.io/api/health` return `{"status":"ok",...}`
+- [ ] `https://golfy.<server-ip-dashed>.sslip.io/api/health` and `https://golfy-admin.<server-ip-dashed>.sslip.io/api/health` return `{"status":"ok",...}`
 - [ ] Seed run (optional) and a venue photo loads (`/api/uploads/venues/seed/...`)
 - [ ] Player login works and the cookie is `HttpOnly; Secure; SameSite=Lax` (DevTools → Application → Cookies)
 - [ ] Reload a deep link such as `/venues` or `/credits` in both apps (no nginx 404)
